@@ -145,7 +145,16 @@ SortingVisualiser2/
 
 ## 👥 Authors
 
-This project was developed as part of an Algorithm and Data Structures (ADS) course project.
+This project was developed as part of an Algorithm and Data Structures (ADS) course project by:
+
+- **Ashwin**
+- **Anirudh**
+- **Pravesh**
+- **Ajinkya**
+- **Prashant**
+
+**SIES College of Management Studies**  
+MCA Department | Batch 2025-27
 
 ---
 
