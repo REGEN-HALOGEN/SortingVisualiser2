@@ -5,7 +5,8 @@ import javax.swing.*;
 
 /**
  * DataStructureVisualizer.java
- * Interactive visualizer for data structures: Stack, Queue, LinkedList, Circular LinkedList, Doubly LinkedList.
+ * Interactive visualizer for data structures: Stack, Queue, LinkedList,
+ * Circular LinkedList, Doubly LinkedList.
  *
  * Compile:
  * javac DataStructureVisualizer.java
@@ -24,7 +25,7 @@ public class DataStructureVisualizer {
 /* ============================== Main Frame ============================== */
 class DSVisualizerFrame extends JFrame {
     private final JComboBox<String> dsSelect = new JComboBox<>(
-            new String[]{"Stack", "Queue", "LinkedList", "Circular LinkedList", "Doubly LinkedList"});
+            new String[] { "Stack", "Queue", "LinkedList", "Circular LinkedList", "Doubly LinkedList" });
     private final JTextField valueInput = new JTextField(10);
     private final JButton pushPushBtn = new JButton("Push/Add");
     private final JButton popRemoveBtn = new JButton("Pop/Remove");
@@ -33,6 +34,9 @@ class DSVisualizerFrame extends JFrame {
     private final JButton insertBeginBtn = new JButton("Insert at Begin");
     private final JButton insertMiddleBtn = new JButton("Insert at Middle");
     private final JButton insertEndBtn = new JButton("Insert at End");
+    private final JButton deleteBeginBtn = new JButton("Delete Begin");
+    private final JButton deleteMiddleBtn = new JButton("Delete Middle");
+    private final JButton deleteEndBtn = new JButton("Delete End");
     private final JLabel statusLabel = new JLabel("Status: Ready");
     private final DSVisualizerPanel visualPanel = new DSVisualizerPanel();
 
@@ -125,6 +129,33 @@ class DSVisualizerFrame extends JFrame {
             }
         });
 
+        deleteBeginBtn.addActionListener(e -> {
+            Integer removed = visualPanel.removeAtPosition("begin");
+            if (removed != null) {
+                statusLabel.setText("Status: Deleted " + removed + " from beginning");
+            } else {
+                statusLabel.setText("Status: List is empty!");
+            }
+        });
+
+        deleteMiddleBtn.addActionListener(e -> {
+            Integer removed = visualPanel.removeAtPosition("middle");
+            if (removed != null) {
+                statusLabel.setText("Status: Deleted " + removed + " from middle");
+            } else {
+                statusLabel.setText("Status: List is empty!");
+            }
+        });
+
+        deleteEndBtn.addActionListener(e -> {
+            Integer removed = visualPanel.removeAtPosition("end");
+            if (removed != null) {
+                statusLabel.setText("Status: Deleted " + removed + " from end");
+            } else {
+                statusLabel.setText("Status: List is empty!");
+            }
+        });
+
         popRemoveBtn.addActionListener(e -> {
             Integer removed = visualPanel.removeElement();
             if (removed != null) {
@@ -171,11 +202,17 @@ class DSVisualizerFrame extends JFrame {
         top.add(insertBeginBtn);
         top.add(insertMiddleBtn);
         top.add(insertEndBtn);
+        top.add(deleteBeginBtn);
+        top.add(deleteMiddleBtn);
+        top.add(deleteEndBtn);
 
-        // Initially hide insert buttons
+        // Initially hide insert/delete position buttons (only for LinkedLists)
         insertBeginBtn.setVisible(false);
         insertMiddleBtn.setVisible(false);
         insertEndBtn.setVisible(false);
+        deleteBeginBtn.setVisible(false);
+        deleteMiddleBtn.setVisible(false);
+        deleteEndBtn.setVisible(false);
 
         JPanel bottom = new JPanel(new FlowLayout(FlowLayout.LEFT));
         bottom.add(statusLabel);
@@ -190,10 +227,16 @@ class DSVisualizerFrame extends JFrame {
         insertBeginBtn.setVisible(isLinkedList);
         insertMiddleBtn.setVisible(isLinkedList);
         insertEndBtn.setVisible(isLinkedList);
+        deleteBeginBtn.setVisible(isLinkedList);
+        deleteMiddleBtn.setVisible(isLinkedList);
+        deleteEndBtn.setVisible(isLinkedList);
     }
 }
 
-/* ============================== Visualization Panel ============================== */
+/*
+ * ============================== Visualization Panel
+ * ==============================
+ */
 class DSVisualizerPanel extends JPanel {
     private BaseDataStructure currentDS;
     private String currentType = "Stack";
@@ -209,11 +252,11 @@ class DSVisualizerPanel extends JPanel {
     }
 
     private void initializeColors() {
-        colorMap.put("Stack", new Color(52, 152, 219));      // Blue
-        colorMap.put("Queue", new Color(46, 204, 113));      // Green
+        colorMap.put("Stack", new Color(52, 152, 219)); // Blue
+        colorMap.put("Queue", new Color(46, 204, 113)); // Green
         colorMap.put("LinkedList", new Color(155, 89, 182)); // Purple
         colorMap.put("Circular LinkedList", new Color(230, 126, 34)); // Orange
-        colorMap.put("Doubly LinkedList", new Color(231, 76, 60));    // Red
+        colorMap.put("Doubly LinkedList", new Color(231, 76, 60)); // Red
     }
 
     private void startAnimationTimer() {
@@ -290,6 +333,15 @@ class DSVisualizerPanel extends JPanel {
         }
     }
 
+    public Integer removeAtPosition(String position) {
+        if (currentDS != null && currentDS instanceof LinkedListBase) {
+            Integer removed = ((LinkedListBase) currentDS).removeAt(position);
+            repaint();
+            return removed;
+        }
+        return null;
+    }
+
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -325,7 +377,7 @@ class DSVisualizerPanel extends JPanel {
             int spacing = 5;
             int startY = 150;
             int totalHeight = startY + (currentDS.elements.size() * (boxHeight + spacing)) + 100;
-            
+
             if (getParent() != null) {
                 int parentHeight = getParent().getHeight();
                 if (totalHeight > parentHeight) {
@@ -342,17 +394,26 @@ class DSVisualizerPanel extends JPanel {
 
     private String getDescription(String type) {
         switch (type) {
-            case "Stack": return "LIFO: Last In, First Out";
-            case "Queue": return "FIFO: First In, First Out";
-            case "LinkedList": return "Singly Linked: One-way traversal";
-            case "Circular LinkedList": return "Circular: Last node points to first";
-            case "Doubly LinkedList": return "Two-way: Forward and backward traversal";
-            default: return "";
+            case "Stack":
+                return "LIFO: Last In, First Out";
+            case "Queue":
+                return "FIFO: First In, First Out";
+            case "LinkedList":
+                return "Singly Linked: One-way traversal";
+            case "Circular LinkedList":
+                return "Circular: Last node points to first";
+            case "Doubly LinkedList":
+                return "Two-way: Forward and backward traversal";
+            default:
+                return "";
         }
     }
 }
 
-/* ============================== Base Data Structure ============================== */
+/*
+ * ============================== Base Data Structure
+ * ==============================
+ */
 abstract class BaseDataStructure {
     protected java.util.List<Integer> elements = new ArrayList<>();
 
@@ -361,7 +422,8 @@ abstract class BaseDataStructure {
     }
 
     public Integer remove() {
-        if (elements.isEmpty()) return null;
+        if (elements.isEmpty())
+            return null;
         return elements.remove(elements.size() - 1);
     }
 
@@ -376,16 +438,22 @@ abstract class BaseDataStructure {
     public abstract void draw(Graphics2D g, int w, int h, Color color, int animationPhase);
 }
 
-/* ============================== LinkedList Base Interface ============================== */
+/*
+ * ============================== LinkedList Base Interface
+ * ==============================
+ */
 interface LinkedListBase {
     void insertAt(int value, String position);
+
+    Integer removeAt(String position);
 }
 
 /* ============================== Stack ============================== */
 class StackDS extends BaseDataStructure {
     @Override
     public Integer remove() {
-        if (elements.isEmpty()) return null;
+        if (elements.isEmpty())
+            return null;
         return elements.remove(elements.size() - 1);
     }
 
@@ -454,7 +522,8 @@ class StackDS extends BaseDataStructure {
 class QueueDS extends BaseDataStructure {
     @Override
     public Integer remove() {
-        if (elements.isEmpty()) return null;
+        if (elements.isEmpty())
+            return null;
         return elements.remove(0); // Remove from front
     }
 
@@ -516,8 +585,8 @@ class QueueDS extends BaseDataStructure {
             int arrowX = startX + boxWidth / 2;
             g.drawLine(arrowX, y1, arrowX, y2);
             // Draw arrowhead
-            g.fillPolygon(new int[]{arrowX, arrowX - 5, arrowX + 5}, 
-                         new int[]{y2, y2 - 8, y2 - 8}, 3);
+            g.fillPolygon(new int[] { arrowX, arrowX - 5, arrowX + 5 },
+                    new int[] { y2, y2 - 8, y2 - 8 }, 3);
         }
 
         // Draw info
@@ -527,7 +596,10 @@ class QueueDS extends BaseDataStructure {
     }
 }
 
-/* ============================== LinkedList (Singly) ============================== */
+/*
+ * ============================== LinkedList (Singly)
+ * ==============================
+ */
 class LinkedListDS extends BaseDataStructure implements LinkedListBase {
     private java.util.Random random = new java.util.Random();
     private java.util.Map<Integer, String> addressMap = new java.util.HashMap<>();
@@ -565,6 +637,32 @@ class LinkedListDS extends BaseDataStructure implements LinkedListBase {
         for (int i = 0; i < elements.size(); i++) {
             addressMap.put(i, String.format("%04X", random.nextInt(65536)));
         }
+    }
+
+    @Override
+    public Integer removeAt(String position) {
+        if (elements.isEmpty())
+            return null;
+        int index;
+        switch (position) {
+            case "begin":
+                index = 0;
+                break;
+            case "middle":
+                index = elements.size() / 2;
+                break;
+            case "end":
+            default:
+                index = elements.size() - 1;
+                break;
+        }
+        Integer removed = elements.remove(index);
+        // Regenerate address map
+        addressMap.clear();
+        for (int i = 0; i < elements.size(); i++) {
+            addressMap.put(i, String.format("%04X", random.nextInt(65536)));
+        }
+        return removed;
     }
 
     @Override
@@ -657,10 +755,10 @@ class LinkedListDS extends BaseDataStructure implements LinkedListBase {
                 g.setColor(new Color(100, 150, 255));
                 g.setStroke(new BasicStroke(2));
                 g.drawLine(arrowStartX, arrowY, arrowEndX, arrowY);
-                
+
                 // Draw arrowhead
-                int[] xPoints = {arrowEndX, arrowEndX - 10, arrowEndX - 10};
-                int[] yPoints = {arrowY, arrowY - 5, arrowY + 5};
+                int[] xPoints = { arrowEndX, arrowEndX - 10, arrowEndX - 10 };
+                int[] yPoints = { arrowY, arrowY - 5, arrowY + 5 };
                 g.fillPolygon(xPoints, yPoints, 3);
                 g.setColor(Color.BLACK);
                 g.drawPolygon(xPoints, yPoints, 3);
@@ -682,12 +780,17 @@ class LinkedListDS extends BaseDataStructure implements LinkedListBase {
     }
 }
 
-/* ============================== Circular LinkedList ============================== */
+/*
+ * ============================== Circular LinkedList
+ * ==============================
+ */
 class CircularLinkedListDS extends BaseDataStructure implements LinkedListBase {
     private java.util.Random random = new java.util.Random();
     private java.util.Map<Integer, String> addressMap = new java.util.HashMap<>();
 
-    public CircularLinkedListDS() { super(); }
+    public CircularLinkedListDS() {
+        super();
+    }
 
     @Override
     public void add(int value) {
@@ -721,6 +824,32 @@ class CircularLinkedListDS extends BaseDataStructure implements LinkedListBase {
     }
 
     @Override
+    public Integer removeAt(String position) {
+        if (elements.isEmpty())
+            return null;
+        int index;
+        switch (position) {
+            case "begin":
+                index = 0;
+                break;
+            case "middle":
+                index = elements.size() / 2;
+                break;
+            case "end":
+            default:
+                index = elements.size() - 1;
+                break;
+        }
+        Integer removed = elements.remove(index);
+        // Regenerate address map
+        addressMap.clear();
+        for (int i = 0; i < elements.size(); i++) {
+            addressMap.put(i, String.format("%04X", random.nextInt(65536)));
+        }
+        return removed;
+    }
+
+    @Override
     public void clear() {
         super.clear();
         addressMap.clear();
@@ -748,11 +877,12 @@ class CircularLinkedListDS extends BaseDataStructure implements LinkedListBase {
             int x = startX + i * (nodeWidth + spacing);
             int y = centerY;
 
-            if (!addressMap.containsKey(i)) addressMap.put(i, String.format("%04X", random.nextInt(65536)));
+            if (!addressMap.containsKey(i))
+                addressMap.put(i, String.format("%04X", random.nextInt(65536)));
             String address = addressMap.get(i);
 
             // address label
-            g.setColor(new Color(200,200,200));
+            g.setColor(new Color(200, 200, 200));
             g.setFont(new Font("Courier", Font.BOLD, 11));
             g.drawString(address, x + 10, y - 10);
 
@@ -760,7 +890,7 @@ class CircularLinkedListDS extends BaseDataStructure implements LinkedListBase {
             int dataW = nodeWidth * 55 / 100;
             int ptrW = nodeWidth - dataW;
 
-            g.setColor(new Color(30,30,30));
+            g.setColor(new Color(30, 30, 30));
             g.fillRect(x, y, dataW, nodeHeight);
             g.setColor(Color.WHITE);
             g.setStroke(new BasicStroke(2));
@@ -769,13 +899,13 @@ class CircularLinkedListDS extends BaseDataStructure implements LinkedListBase {
             String val = String.valueOf(elements.get(i));
             FontMetrics fm = g.getFontMetrics();
             int tx = x + (dataW - fm.stringWidth(val)) / 2;
-            int ty = y + (nodeHeight/2) + fm.getAscent()/2 - 2;
+            int ty = y + (nodeHeight / 2) + fm.getAscent() / 2 - 2;
             g.drawString(val, tx, ty);
             g.setFont(new Font("Arial", Font.PLAIN, 9));
             g.drawString("data", x + 6, y + nodeHeight - 6);
 
             // draw ptr section (right - cyan)
-            g.setColor(new Color(0,200,255));
+            g.setColor(new Color(0, 200, 255));
             g.fillRect(x + dataW, y, ptrW, nodeHeight);
             g.setColor(Color.BLACK);
             g.drawRect(x + dataW, y, ptrW, nodeHeight);
@@ -785,32 +915,34 @@ class CircularLinkedListDS extends BaseDataStructure implements LinkedListBase {
 
             // ptr address text
             g.setFont(new Font("Courier", Font.BOLD, 11));
-            String ptrAddr = (i < elements.size() - 1) ? addressMap.getOrDefault(i+1, "????") : addressMap.getOrDefault(0, "????");
+            String ptrAddr = (i < elements.size() - 1) ? addressMap.getOrDefault(i + 1, "????")
+                    : addressMap.getOrDefault(0, "????");
             fm = g.getFontMetrics();
             int pax = x + dataW + (ptrW - fm.stringWidth(ptrAddr)) / 2;
-            int pay = y + (nodeHeight/2) + fm.getAscent()/2 - 2;
+            int pay = y + (nodeHeight / 2) + fm.getAscent() / 2 - 2;
             g.drawString(ptrAddr, pax, pay);
 
             // arrow to next node (simple line)
             if (i < elements.size() - 1) {
                 int ax = x + nodeWidth + 6;
-                int ay = y + nodeHeight/2;
-                int bx = startX + (i+1)*(nodeWidth+spacing) - 6;
+                int ay = y + nodeHeight / 2;
+                int bx = startX + (i + 1) * (nodeWidth + spacing) - 6;
                 int by = ay;
-                g.setColor(new Color(100,150,255));
+                g.setColor(new Color(100, 150, 255));
                 g.setStroke(new BasicStroke(2));
                 g.drawLine(ax, ay, bx, by);
-                g.fillPolygon(new int[]{bx, bx-10, bx-10}, new int[]{by, by-6, by+6}, 3);
+                g.fillPolygon(new int[] { bx, bx - 10, bx - 10 }, new int[] { by, by - 6, by + 6 }, 3);
             }
         }
 
-        // Draw the rectangular wrap-around arrow from last node back to first (like reference image)
-        int lastRight = startX + (elements.size()-1)*(nodeWidth+spacing) + nodeWidth;
-        int arrowTop = centerY + nodeHeight/2;
+        // Draw the rectangular wrap-around arrow from last node back to first (like
+        // reference image)
+        int lastRight = startX + (elements.size() - 1) * (nodeWidth + spacing) + nodeWidth;
+        int arrowTop = centerY + nodeHeight / 2;
         int wrapDown = centerY + nodeHeight + 70;
         int leftX = startX - 50;
 
-        g.setColor(new Color(0,200,100));
+        g.setColor(new Color(0, 200, 100));
         g.setStroke(new BasicStroke(3));
 
         // vertical from last node to bottom
@@ -820,33 +952,37 @@ class CircularLinkedListDS extends BaseDataStructure implements LinkedListBase {
         // bottom horizontal to leftX
         g.drawLine(sx, wrapDown, leftX, wrapDown);
         // up to just above first node
-    int upY = centerY - 20;
+        int upY = centerY - 20;
         g.drawLine(leftX, wrapDown, leftX, upY);
         // horizontal right to just left of first node's ptr
         int toX = startX - 6;
         g.drawLine(leftX, upY, toX, upY);
         // arrowhead pointing right into first node
-        g.fillPolygon(new int[]{toX, toX-8, toX-8}, new int[]{upY, upY-6, upY+6}, 3);
+        g.fillPolygon(new int[] { toX, toX - 8, toX - 8 }, new int[] { upY, upY - 6, upY + 6 }, 3);
 
         // Draw HEAD label with small arrow down to first node
-        g.setColor(new Color(255,200,0));
+        g.setColor(new Color(255, 200, 0));
         g.setFont(new Font("Arial", Font.BOLD, 12));
         g.drawString("HEAD", startX - 70, centerY + 10);
         // small arrow from HEAD to first node
-        g.setColor(new Color(255,200,0));
+        g.setColor(new Color(255, 200, 0));
         g.setStroke(new BasicStroke(2));
         g.drawLine(startX - 20, centerY + 12, startX + 6, centerY + 12);
-        g.fillPolygon(new int[]{startX + 6, startX, startX}, new int[]{centerY + 12, centerY + 8, centerY + 16}, 3);
+        g.fillPolygon(new int[] { startX + 6, startX, startX }, new int[] { centerY + 12, centerY + 8, centerY + 16 },
+                3);
 
         // Info
-        g.setColor(new Color(150,150,150));
+        g.setColor(new Color(150, 150, 150));
         g.setFont(new Font("Arial", Font.PLAIN, 12));
         g.drawString("Size: " + elements.size(), startX, h - 50);
         g.drawString("Circular LinkedList - linear layout with wrap arrow", startX, h - 25);
     }
 }
 
-/* ============================== Doubly LinkedList ============================== */
+/*
+ * ============================== Doubly LinkedList
+ * ==============================
+ */
 class DoublyLinkedListDS extends BaseDataStructure implements LinkedListBase {
     private java.util.Random random = new java.util.Random();
     private java.util.Map<Integer, String> addressMap = new java.util.HashMap<>();
@@ -887,10 +1023,37 @@ class DoublyLinkedListDS extends BaseDataStructure implements LinkedListBase {
     }
 
     @Override
+    public Integer removeAt(String position) {
+        if (elements.isEmpty())
+            return null;
+        int index;
+        switch (position) {
+            case "begin":
+                index = 0;
+                break;
+            case "middle":
+                index = elements.size() / 2;
+                break;
+            case "end":
+            default:
+                index = elements.size() - 1;
+                break;
+        }
+        Integer removed = elements.remove(index);
+        // Regenerate address map
+        addressMap.clear();
+        for (int i = 0; i < elements.size(); i++) {
+            addressMap.put(i, String.format("%04X", random.nextInt(65536)));
+        }
+        return removed;
+    }
+
+    @Override
     public void clear() {
         super.clear();
         addressMap.clear();
     }
+
     @Override
     public void draw(Graphics2D g, int w, int h, Color color, int animationPhase) {
         int nodeWidth = 120;
@@ -917,7 +1080,8 @@ class DoublyLinkedListDS extends BaseDataStructure implements LinkedListBase {
             g.setFont(new Font("Courier", Font.BOLD, 11));
             g.drawString(address, x + 30, y - 10);
 
-            // Node has 3 sections: prev (left, orange), data (center, black), next (right, cyan)
+            // Node has 3 sections: prev (left, orange), data (center, black), next (right,
+            // cyan)
             int prevWidth = 30;
             int dataWidth = 60;
             int nextWidth = 30;
@@ -971,8 +1135,8 @@ class DoublyLinkedListDS extends BaseDataStructure implements LinkedListBase {
                 g.setColor(new Color(0, 200, 255));
                 g.setStroke(new BasicStroke(2));
                 g.drawLine(x + nodeWidth + 5, y + nodeHeight / 2, nextNodeX - 5, y + nodeHeight / 2);
-                g.fillPolygon(new int[]{nextNodeX - 5, nextNodeX - 13, nextNodeX - 13}, 
-                             new int[]{y + nodeHeight / 2, y + nodeHeight / 2 - 5, y + nodeHeight / 2 + 5}, 3);
+                g.fillPolygon(new int[] { nextNodeX - 5, nextNodeX - 13, nextNodeX - 13 },
+                        new int[] { y + nodeHeight / 2, y + nodeHeight / 2 - 5, y + nodeHeight / 2 + 5 }, 3);
             }
 
             // Backward pointer (to previous node)
@@ -981,8 +1145,8 @@ class DoublyLinkedListDS extends BaseDataStructure implements LinkedListBase {
                 g.setColor(new Color(255, 150, 100));
                 g.setStroke(new BasicStroke(2));
                 g.drawLine(x - 5, y - 15, prevNodeX + nodeWidth + 5, y - 15);
-                g.fillPolygon(new int[]{x - 5, x + 3, x + 3}, 
-                             new int[]{y - 15, y - 20, y - 10}, 3);
+                g.fillPolygon(new int[] { x - 5, x + 3, x + 3 },
+                        new int[] { y - 15, y - 20, y - 10 }, 3);
             }
         }
 

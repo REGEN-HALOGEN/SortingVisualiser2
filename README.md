@@ -45,10 +45,17 @@ Interactive visualization of 5 fundamental data structures:
 
 **Features:**
 - Add/Remove elements interactively
-- Insert at beginning, middle, or end (for LinkedLists)
+- **Insert at any position** - beginning, middle, or end (LinkedLists)
+- **Delete at any position** - beginning, middle, or end (LinkedLists)
 - Random fill functionality
 - Memory address simulation for linked structures
 - Visual pointer arrows between nodes
+
+### 🎨 Modern UI
+- Dark theme with gradient backgrounds
+- Rounded cards with hover effects
+- Custom styled navigation buttons with icons
+- Smooth animations and visual feedback
 
 ---
 
@@ -127,7 +134,9 @@ SortingVisualiser2/
 2. Enter a value in the input field
 3. Click **Push/Add** to add elements
 4. Click **Pop/Remove** to remove elements
-5. For LinkedLists, use **Insert at Begin/Middle/End** for positional insertion
+5. For LinkedLists:
+   - Use **Insert at Begin/Middle/End** for positional insertion
+   - Use **Delete Begin/Middle/End** for positional deletion
 6. Click **Random Fill** to populate with random values
 7. Click **Clear** to empty the data structure
 
