@@ -8,9 +8,6 @@ import javax.swing.*;
  * SortingVisualiser.java
  * Single-file Swing sorting visualizer.
  *
- * Author: Ashwin Biju
- * GitHub: https://github.com/REGEN-HALOGEN
- *
  * Compile:
  * javac SortingVisualiser.java
  * Run:
