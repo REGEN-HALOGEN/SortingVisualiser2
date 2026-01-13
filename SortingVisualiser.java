@@ -27,7 +27,8 @@ class VisualFrame extends JFrame {
     private final VisualPanel visualPanel = new VisualPanel();
     private final JComboBox<String> algoSelect = new JComboBox<>(
             // 🔹 UPDATED: Added Shell Sort and Radix Sort
-            new String[]{"Bubble Sort", "Selection Sort", "Insertion Sort", "Merge Sort", "Quick Sort", "Heap Sort", "Shell Sort", "Radix Sort"});
+            new String[] { "Bubble Sort", "Selection Sort", "Insertion Sort", "Merge Sort", "Quick Sort", "Heap Sort",
+                    "Shell Sort", "Radix Sort" });
     private final JSlider sizeSlider = new JSlider(10, 300, 80);
     private final JSlider speedSlider = new JSlider(10, 200, 80); // lower delay = faster
     private final JButton randomizeBtn = new JButton("Randomize");
@@ -35,7 +36,18 @@ class VisualFrame extends JFrame {
     private final JButton startBtn = new JButton("Start");
     private final JButton pauseBtn = new JButton("Pause");
     private final JButton resetBtn = new JButton("Reset");
+    private final JButton clearBtn = new JButton("Clear");
     private final JLabel statusLabel = new JLabel("Status: Ready");
+    private final JLabel sizeValueLabel = new JLabel("80", SwingConstants.CENTER); // Size counter label
+    {
+        sizeValueLabel.setPreferredSize(new Dimension(40, 22));
+        sizeValueLabel.setBorder(BorderFactory.createLineBorder(Color.GRAY));
+        sizeValueLabel.setOpaque(true);
+        sizeValueLabel.setBackground(Color.WHITE);
+    }
+
+    // Flag to prevent random generation when programmatically setting slider
+    private boolean skipRandomGeneration = false;
 
     // 🔹 NEW: Checkbox for number visibility
     private final JCheckBox numberToggle = new JCheckBox("Show Numbers", true);
@@ -55,20 +67,22 @@ class VisualFrame extends JFrame {
         add(visualPanel, BorderLayout.CENTER);
         add(buildControlPanel(), BorderLayout.SOUTH);
 
-        // Initial array
-        visualPanel.generateRandomArray(sizeSlider.getValue());
+        // Start with cleared/blank state (no initial array)
+        visualPanel.clearArray();
 
         // --- Event Listeners ---
 
         randomizeBtn.addActionListener(e -> {
-            if (player != null && player.isPlaying()) return;
+            if (player != null && player.isPlaying())
+                return;
             visualPanel.generateRandomArray(sizeSlider.getValue());
             statusLabel.setText("Status: Randomized");
         });
 
         // Load Custom Array listener
         loadCustomBtn.addActionListener(e -> {
-            if (player != null && player.isPlaying()) return;
+            if (player != null && player.isPlaying())
+                return;
             String input = JOptionPane.showInputDialog(this,
                     "Enter array elements separated by commas (e.g., 50,20,80,10):",
                     "Custom Array Input",
@@ -92,21 +106,34 @@ class VisualFrame extends JFrame {
         });
 
         resetBtn.addActionListener(e -> {
-            if (player != null) player.stop();
+            if (player != null)
+                player.stop();
             visualPanel.resetHighlights();
             visualPanel.resetToOriginal(); // Use resetToOriginal to restore from aux
             statusLabel.setText("Status: Reset");
         });
 
+        clearBtn.addActionListener(e -> {
+            if (player != null)
+                player.stop();
+            visualPanel.clearArray();
+            statusLabel.setText("Status: Cleared");
+        });
+
         sizeSlider.addChangeListener(e -> {
+            sizeValueLabel.setText(String.valueOf(sizeSlider.getValue())); // Update size counter
             if (!sizeSlider.getValueIsAdjusting()) {
-                if (player != null && player.isPlaying()) return;
+                if (player != null && player.isPlaying())
+                    return;
+                if (skipRandomGeneration)
+                    return; // Skip if flag is set
                 visualPanel.generateRandomArray(sizeSlider.getValue());
             }
         });
 
         speedSlider.addChangeListener(e -> {
-            if (player != null) player.setDelay(speedToDelay(speedSlider.getValue()));
+            if (player != null)
+                player.setDelay(speedToDelay(speedSlider.getValue()));
         });
 
         // 🔹 NEW: Toggle visibility in VisualPanel
@@ -123,6 +150,7 @@ class VisualFrame extends JFrame {
         top.add(new JLabel("Algorithm:"));
         top.add(algoSelect);
         top.add(new JLabel("Size:"));
+        top.add(sizeValueLabel);
         top.add(sizeSlider);
         top.add(new JLabel("Speed:"));
         top.add(speedSlider);
@@ -131,6 +159,7 @@ class VisualFrame extends JFrame {
         top.add(startBtn);
         top.add(pauseBtn);
         top.add(resetBtn);
+        top.add(clearBtn);
 
         JPanel bottom = new JPanel(new FlowLayout(FlowLayout.LEFT));
         bottom.add(statusLabel);
@@ -148,13 +177,16 @@ class VisualFrame extends JFrame {
             int[] customArray = new int[parts.length];
             for (int i = 0; i < parts.length; i++) {
                 int value = Integer.parseInt(parts[i].trim());
-                if (value <= 0) throw new NumberFormatException("Value must be positive.");
+                if (value <= 0)
+                    throw new NumberFormatException("Value must be positive.");
                 customArray[i] = value;
             }
             if (customArray.length > 0) {
                 visualPanel.setCustomArray(customArray);
                 statusLabel.setText("Status: Custom array loaded (" + customArray.length + " elements)");
+                skipRandomGeneration = true; // Set flag before changing slider
                 sizeSlider.setValue(customArray.length); // Update slider to reflect size
+                skipRandomGeneration = false; // Reset flag after
             } else {
                 statusLabel.setText("Status: Error - Empty array.");
             }
@@ -176,7 +208,8 @@ class VisualFrame extends JFrame {
     }
 
     private void startSorting() {
-        if (player != null && player.isPlaying()) return;
+        if (player != null && player.isPlaying())
+            return;
         String algo = (String) algoSelect.getSelectedItem();
         int[] arr = visualPanel.getArrayCopy();
         statusLabel.setText("Status: Generating operations...");
@@ -186,16 +219,34 @@ class VisualFrame extends JFrame {
         new Thread(() -> {
             List<Operation> ops = new ArrayList<>();
             switch (algo) {
-                case "Bubble Sort": SortingAlgorithms.bubbleSort(arr.clone(), ops); break;
-                case "Selection Sort": SortingAlgorithms.selectionSort(arr.clone(), ops); break;
-                case "Insertion Sort": SortingAlgorithms.insertionSort(arr.clone(), ops); break;
-                case "Merge Sort": SortingAlgorithms.mergeSort(arr.clone(), ops); break;
-                case "Quick Sort": SortingAlgorithms.quickSort(arr.clone(), ops); break;
-                case "Heap Sort": SortingAlgorithms.heapSort(arr.clone(), ops); break;
+                case "Bubble Sort":
+                    SortingAlgorithms.bubbleSort(arr.clone(), ops);
+                    break;
+                case "Selection Sort":
+                    SortingAlgorithms.selectionSort(arr.clone(), ops);
+                    break;
+                case "Insertion Sort":
+                    SortingAlgorithms.insertionSort(arr.clone(), ops);
+                    break;
+                case "Merge Sort":
+                    SortingAlgorithms.mergeSort(arr.clone(), ops);
+                    break;
+                case "Quick Sort":
+                    SortingAlgorithms.quickSort(arr.clone(), ops);
+                    break;
+                case "Heap Sort":
+                    SortingAlgorithms.heapSort(arr.clone(), ops);
+                    break;
                 // 🔹 UPDATED: Added Shell Sort and Radix Sort
-                case "Shell Sort": SortingAlgorithms.shellSort(arr.clone(), ops); break;
-                case "Radix Sort": SortingAlgorithms.radixSort(arr.clone(), ops); break;
-                default: SortingAlgorithms.bubbleSort(arr.clone(), ops); break;
+                case "Shell Sort":
+                    SortingAlgorithms.shellSort(arr.clone(), ops);
+                    break;
+                case "Radix Sort":
+                    SortingAlgorithms.radixSort(arr.clone(), ops);
+                    break;
+                default:
+                    SortingAlgorithms.bubbleSort(arr.clone(), ops);
+                    break;
             }
 
             SwingUtilities.invokeLater(() -> {
@@ -230,7 +281,7 @@ class VisualPanel extends JPanel {
 
     // Method to set a user-defined array
     public void setCustomArray(int[] customArray) {
-        this.array = customArray;
+        this.array = customArray.clone();
         this.aux = customArray.clone();
         resetHighlights();
         repaint();
@@ -239,8 +290,17 @@ class VisualPanel extends JPanel {
     public void generateRandomArray(int size) {
         Random rnd = new Random();
         array = new int[size];
-        for (int i = 0; i < size; i++) array[i] = rnd.nextInt(400) + 5;
+        for (int i = 0; i < size; i++)
+            array[i] = rnd.nextInt(400) + 5;
         aux = array.clone();
+        resetHighlights();
+        repaint();
+    }
+
+    // Clear the array (blank state)
+    public void clearArray() {
+        this.array = null;
+        this.aux = null;
         resetHighlights();
         repaint();
     }
@@ -282,7 +342,8 @@ class VisualPanel extends JPanel {
 
     // Resets array back to original random/custom state
     public void resetToOriginal() {
-        if (aux != null) array = aux.clone();
+        if (aux != null)
+            array = aux.clone();
         resetHighlights();
         repaint();
     }
@@ -290,19 +351,23 @@ class VisualPanel extends JPanel {
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        if (array == null) return;
+        if (array == null)
+            return;
         Graphics2D g2 = (Graphics2D) g;
         int w = getWidth();
         int h = getHeight();
         int n = array.length;
         double barWidth = Math.max(1, (double) w / n);
 
-        // Use a smaller font for large arrays (Adjusted for better visibility on medium size)
+        // Use a smaller font for large arrays (Adjusted for better visibility on medium
+        // size)
         int fontSize = (n <= 50) ? 14 : (n <= 120) ? 10 : 7;
         g2.setFont(new Font("Arial", Font.BOLD, fontSize));
 
         int max = 1;
-        for (int v : array) if (v > max) max = v;
+        for (int v : array)
+            if (v > max)
+                max = v;
 
         for (int i = 0; i < n; i++) {
             int val = array[i];
@@ -327,7 +392,8 @@ class VisualPanel extends JPanel {
                 int strWidth = fm.stringWidth(valueStr);
                 int strHeight = fm.getHeight();
 
-                // Condition: Draw number only if the bar is wide enough to prevent extreme clutter
+                // Condition: Draw number only if the bar is wide enough to prevent extreme
+                // clutter
                 if (barWidth > strWidth * 0.9 || n < 50) {
 
                     int textX = x + (int) (barWidth / 2) - (strWidth / 2);
@@ -348,7 +414,9 @@ class VisualPanel extends JPanel {
 }
 
 /* ---------------------------- Operation model ---------------------------- */
-enum OpType { COMPARE, SWAP, OVERWRITE, MARK_FINAL }
+enum OpType {
+    COMPARE, SWAP, OVERWRITE, MARK_FINAL
+}
 
 class Operation {
     final OpType type;
@@ -362,13 +430,27 @@ class Operation {
         this.value = value;
     }
 
-    public static Operation compare(int i, int j) { return new Operation(OpType.COMPARE, i, j, 0); }
-    public static Operation swap(int i, int j) { return new Operation(OpType.SWAP, i, j, 0); }
-    public static Operation overwrite(int i, int value) { return new Operation(OpType.OVERWRITE, i, -1, value); }
-    public static Operation markFinal(int i) { return new Operation(OpType.MARK_FINAL, i, -1, 0); }
+    public static Operation compare(int i, int j) {
+        return new Operation(OpType.COMPARE, i, j, 0);
+    }
+
+    public static Operation swap(int i, int j) {
+        return new Operation(OpType.SWAP, i, j, 0);
+    }
+
+    public static Operation overwrite(int i, int value) {
+        return new Operation(OpType.OVERWRITE, i, -1, value);
+    }
+
+    public static Operation markFinal(int i) {
+        return new Operation(OpType.MARK_FINAL, i, -1, 0);
+    }
 }
 
-/* ---------------------------- Operation Player (animator) ---------------------------- */
+/*
+ * ---------------------------- Operation Player (animator)
+ * ----------------------------
+ */
 class OperationPlayer {
     private final List<Operation> ops;
     private final VisualPanel panel;
@@ -377,6 +459,7 @@ class OperationPlayer {
     private javax.swing.Timer timer;
     private int cursor = 0;
     private final JLabel statusLabel;
+    private long startTime; // Track execution start time
 
     public OperationPlayer(List<Operation> ops, VisualPanel panel, int delayMs, JLabel status) {
         this.ops = ops;
@@ -386,23 +469,31 @@ class OperationPlayer {
     }
 
     public void start() {
-        if (playing.get()) return;
+        if (playing.get())
+            return;
         playing.set(true);
         paused.set(false);
         cursor = 0;
+        startTime = System.currentTimeMillis(); // Record start time
         timer.start();
     }
 
     public void setDelay(int delayMs) {
-        if (timer != null) timer.setDelay(delayMs);
+        if (timer != null)
+            timer.setDelay(delayMs);
         // create timer if null
         if (timer == null) {
             timer = new javax.swing.Timer(Math.max(1, delayMs), e -> {
-                if (!playing.get()) return;
-                if (paused.get()) return;
+                if (!playing.get())
+                    return;
+                if (paused.get())
+                    return;
                 if (cursor >= ops.size()) {
+                    long elapsedMs = System.currentTimeMillis() - startTime;
+                    String timeStr = String.format("%.2fs", elapsedMs / 1000.0);
                     stop();
-                    statusLabel.setText("Status: Completed (" + ops.size() + " ops)");
+                    statusLabel.setText(
+                            "Status : Completed Sorting in (" + ops.size() + " Operations) and (" + timeStr + " Time)");
                     return;
                 }
                 Operation op = ops.get(cursor++);
@@ -413,19 +504,34 @@ class OperationPlayer {
         }
     }
 
-    public void pause() { paused.set(true); }
-    public void resume() { paused.set(false); }
-    public boolean isPaused() { return paused.get(); }
-    public boolean isPlaying() { return playing.get(); }
+    public void pause() {
+        paused.set(true);
+    }
+
+    public void resume() {
+        paused.set(false);
+    }
+
+    public boolean isPaused() {
+        return paused.get();
+    }
+
+    public boolean isPlaying() {
+        return playing.get();
+    }
 
     public void stop() {
         playing.set(false);
         paused.set(false);
-        if (timer != null) timer.stop();
+        if (timer != null)
+            timer.stop();
     }
 }
 
-/* ---------------------------- Sorting algorithms that record operations ---------------------------- */
+/*
+ * ---------------------------- Sorting algorithms that record operations
+ * ----------------------------
+ */
 class SortingAlgorithms {
     // Bubble sort
     public static void bubbleSort(int[] a, List<Operation> ops) {
@@ -437,12 +543,15 @@ class SortingAlgorithms {
                 ops.add(Operation.compare(j, j + 1));
                 if (a[j] > a[j + 1]) {
                     ops.add(Operation.swap(j, j + 1));
-                    int tmp = a[j]; a[j] = a[j + 1]; a[j + 1] = tmp;
+                    int tmp = a[j];
+                    a[j] = a[j + 1];
+                    a[j + 1] = tmp;
                     swapped = true;
                 }
             }
             ops.add(Operation.markFinal(n - 1 - i));
-            if (!swapped) break;
+            if (!swapped)
+                break;
         }
         // mark rest final
         for (int k = n - 1 - Math.max(0, n - 1); k >= 0; k--) {
@@ -457,15 +566,19 @@ class SortingAlgorithms {
             int minIdx = i;
             for (int j = i + 1; j < n; j++) {
                 ops.add(Operation.compare(minIdx, j));
-                if (a[j] < a[minIdx]) minIdx = j;
+                if (a[j] < a[minIdx])
+                    minIdx = j;
             }
             if (minIdx != i) {
                 ops.add(Operation.swap(i, minIdx));
-                int tmp = a[i]; a[i] = a[minIdx]; a[minIdx] = tmp;
+                int tmp = a[i];
+                a[i] = a[minIdx];
+                a[minIdx] = tmp;
             }
             ops.add(Operation.markFinal(i));
         }
-        if (n > 0) ops.add(Operation.markFinal(n - 1));
+        if (n > 0)
+            ops.add(Operation.markFinal(n - 1));
     }
 
     // Insertion sort
@@ -480,22 +593,26 @@ class SortingAlgorithms {
                     ops.add(Operation.overwrite(j + 1, a[j]));
                     a[j + 1] = a[j];
                     j--;
-                } else break;
+                } else
+                    break;
             }
             ops.add(Operation.overwrite(j + 1, key));
             a[j + 1] = key;
         }
-        for (int k = 0; k < n; k++) ops.add(Operation.markFinal(k));
+        for (int k = 0; k < n; k++)
+            ops.add(Operation.markFinal(k));
     }
 
     // Merge sort (top-down)
     public static void mergeSort(int[] a, List<Operation> ops) {
         mergeSortRec(a, 0, a.length - 1, ops);
-        for (int k = 0; k < a.length; k++) ops.add(Operation.markFinal(k));
+        for (int k = 0; k < a.length; k++)
+            ops.add(Operation.markFinal(k));
     }
 
     private static void mergeSortRec(int[] a, int l, int r, List<Operation> ops) {
-        if (l >= r) return;
+        if (l >= r)
+            return;
         int m = (l + r) / 2;
         mergeSortRec(a, l, m, ops);
         mergeSortRec(a, m + 1, r, ops);
@@ -510,8 +627,10 @@ class SortingAlgorithms {
                 tmp[k++] = a[j++];
             }
         }
-        while (i <= m) tmp[k++] = a[i++];
-        while (j <= r) tmp[k++] = a[j++];
+        while (i <= m)
+            tmp[k++] = a[i++];
+        while (j <= r)
+            tmp[k++] = a[j++];
         // write back
         for (int t = 0; t < tmp.length; t++) {
             ops.add(Operation.overwrite(l + t, tmp[t]));
@@ -522,7 +641,8 @@ class SortingAlgorithms {
     // Quick sort (Lomuto partition)
     public static void quickSort(int[] a, List<Operation> ops) {
         quickSortRec(a, 0, a.length - 1, ops);
-        for (int k = 0; k < a.length; k++) ops.add(Operation.markFinal(k));
+        for (int k = 0; k < a.length; k++)
+            ops.add(Operation.markFinal(k));
     }
 
     private static void quickSortRec(int[] a, int low, int high, List<Operation> ops) {
@@ -540,12 +660,16 @@ class SortingAlgorithms {
             ops.add(Operation.compare(j, high));
             if (a[j] < pivot) {
                 ops.add(Operation.swap(i, j));
-                int tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+                int tmp = a[i];
+                a[i] = a[j];
+                a[j] = tmp;
                 i++;
             }
         }
         ops.add(Operation.swap(i, high));
-        int tmp = a[i]; a[i] = a[high]; a[high] = tmp;
+        int tmp = a[i];
+        a[i] = a[high];
+        a[high] = tmp;
         return i;
     }
 
@@ -553,11 +677,14 @@ class SortingAlgorithms {
     public static void heapSort(int[] a, List<Operation> ops) {
         int n = a.length;
         // build heap
-        for (int i = n / 2 - 1; i >= 0; i--) heapify(a, n, i, ops);
+        for (int i = n / 2 - 1; i >= 0; i--)
+            heapify(a, n, i, ops);
         // extract
         for (int i = n - 1; i >= 0; i--) {
             ops.add(Operation.swap(0, i));
-            int tmp = a[0]; a[0] = a[i]; a[i] = tmp;
+            int tmp = a[0];
+            a[0] = a[i];
+            a[i] = tmp;
             heapify(a, i, 0, ops);
             ops.add(Operation.markFinal(i));
         }
@@ -569,19 +696,23 @@ class SortingAlgorithms {
         int r = 2 * i + 2;
         if (l < n) {
             ops.add(Operation.compare(l, largest));
-            if (a[l] > a[largest]) largest = l;
+            if (a[l] > a[largest])
+                largest = l;
         }
         if (r < n) {
             ops.add(Operation.compare(r, largest));
-            if (a[r] > a[largest]) largest = r;
+            if (a[r] > a[largest])
+                largest = r;
         }
         if (largest != i) {
             ops.add(Operation.swap(i, largest));
-            int tmp = a[i]; a[i] = a[largest]; a[largest] = tmp;
+            int tmp = a[i];
+            a[i] = a[largest];
+            a[largest] = tmp;
             heapify(a, n, largest, ops);
         }
     }
-    
+
     // 🔹 NEW: Shell Sort
     public static void shellSort(int[] a, List<Operation> ops) {
         int n = a.length;
@@ -591,7 +722,8 @@ class SortingAlgorithms {
             for (int i = gap; i < n; i++) {
                 int key = a[i];
                 int j = i;
-                // Shift earlier gap-sorted elements up until the correct location for a[i] is found
+                // Shift earlier gap-sorted elements up until the correct location for a[i] is
+                // found
                 while (j >= gap) {
                     ops.add(Operation.compare(j - gap, j));
                     if (a[j - gap] > key) {
@@ -607,16 +739,19 @@ class SortingAlgorithms {
                 a[j] = key;
             }
         }
-        for (int k = 0; k < n; k++) ops.add(Operation.markFinal(k));
+        for (int k = 0; k < n; k++)
+            ops.add(Operation.markFinal(k));
     }
 
     // 🔹 NEW: Radix Sort
     public static void radixSort(int[] a, List<Operation> ops) {
-        if (a.length == 0) return;
+        if (a.length == 0)
+            return;
         // Find the maximum number to know number of digits
         int max = a[0];
         for (int val : a) {
-            if (val > max) max = val;
+            if (val > max)
+                max = val;
         }
 
         // Do counting sort for every digit.
@@ -624,9 +759,10 @@ class SortingAlgorithms {
         for (int exp = 1; max / exp > 0; exp *= 10) {
             countingSortForRadix(a, exp, ops);
         }
-        for (int k = 0; k < a.length; k++) ops.add(Operation.markFinal(k));
+        for (int k = 0; k < a.length; k++)
+            ops.add(Operation.markFinal(k));
     }
-    
+
     // 🔹 NEW: Helper for Radix Sort
     private static void countingSortForRadix(int[] a, int exp, List<Operation> ops) {
         int n = a.length;

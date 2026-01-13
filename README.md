@@ -25,12 +25,14 @@ Visualize 8 popular sorting algorithms with step-by-step animations:
 | **Radix Sort** | O(nk) | O(n + k) |
 
 **Features:**
-- Adjustable array size (10-300 elements)
+- Adjustable array size (10-300 elements) with **live size counter display**
 - Adjustable animation speed
 - Random array generation
-- Custom array input support
+- Custom array input support (fixed first-load bug)
 - Toggle number display on/off
 - Pause/Resume/Reset functionality
+- **Clear button** to reset to blank state (default on launch)
+- **Completion stats** showing operation count and execution time
 
 ### 🔗 Data Structure Visualizer
 Interactive visualization of 5 fundamental data structures:
@@ -187,3 +189,15 @@ Contributions are welcome! Feel free to:
 ## 📚 Documentation
 
 For detailed project documentation, refer to the included `ADS_Project_Documentation.pdf` file.
+
+---
+
+## 📝 Changelog
+
+### v1.1.0 (January 2026)
+**Sorting Visualizer Enhancements:**
+- ✨ **Size Counter Display**: Added a visible box next to the "Size:" label showing the current array size in real-time
+- 🐛 **Custom Array Bug Fix**: Fixed issue where custom array values were overwritten by random values on first load
+- 🧹 **Clear Button**: Added "Clear" button to reset visualization to blank state; app now starts blank by default
+- ⏱️ **Execution Time Tracking**: Status now displays completion message with operation count and elapsed time:
+  `Status : Completed Sorting in (X Operations) and (Y Time)`
