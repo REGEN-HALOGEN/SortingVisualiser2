@@ -25,8 +25,9 @@ public class DataStructureVisualizer {
 /* ============================== Main Frame ============================== */
 class DSVisualizerFrame extends JFrame {
     private final JComboBox<String> dsSelect = new JComboBox<>(
-            new String[] { "Stack", "Queue", "LinkedList", "Circular LinkedList", "Doubly LinkedList" });
-    private final JTextField valueInput = new JTextField(10);
+            new String[] { "Stack", "Queue", "Dequeue", "LinkedList", "Circular LinkedList", "Doubly LinkedList" });
+    private final JTextField valueInput = new JTextField(6);
+    private final JTextField sizeInput = new JTextField(3);
     private final JButton pushPushBtn = new JButton("Push/Add");
     private final JButton popRemoveBtn = new JButton("Pop/Remove");
     private final JButton clearBtn = new JButton("Clear");
@@ -37,6 +38,12 @@ class DSVisualizerFrame extends JFrame {
     private final JButton deleteBeginBtn = new JButton("Delete Begin");
     private final JButton deleteMiddleBtn = new JButton("Delete Middle");
     private final JButton deleteEndBtn = new JButton("Delete End");
+    private final JButton searchBtn = new JButton("Search");
+    // Dequeue specific buttons
+    private final JButton addFrontBtn = new JButton("Add Front");
+    private final JButton addRearBtn = new JButton("Add Rear");
+    private final JButton removeFrontBtn = new JButton("Remove Front");
+    private final JButton removeRearBtn = new JButton("Remove Rear");
     private final JLabel statusLabel = new JLabel("Status: Ready");
     private final DSVisualizerPanel visualPanel = new DSVisualizerPanel();
 
@@ -73,9 +80,12 @@ class DSVisualizerFrame extends JFrame {
             }
             try {
                 int value = Integer.parseInt(input);
-                visualPanel.addElement(value);
-                statusLabel.setText("Status: Added " + value);
-                valueInput.setText("");
+                if (visualPanel.addElementWithCheck(value)) {
+                    statusLabel.setText("Status: Added " + value);
+                    valueInput.setText("");
+                } else {
+                    statusLabel.setText("Status: Duplicate value not allowed");
+                }
             } catch (NumberFormatException ex) {
                 statusLabel.setText("Status: Invalid input - enter an integer");
             }
@@ -105,11 +115,26 @@ class DSVisualizerFrame extends JFrame {
             }
             try {
                 int value = Integer.parseInt(input);
-                visualPanel.insertAtPosition(value, "middle");
-                statusLabel.setText("Status: Inserted " + value + " at middle");
-                valueInput.setText("");
+                // Ask for position
+                String posStr = JOptionPane.showInputDialog(this,
+                        "Enter position index (0 to " + visualPanel.getElementCount() + "):",
+                        "Insert Position",
+                        JOptionPane.QUESTION_MESSAGE);
+                if (posStr == null)
+                    return; // Cancelled
+                int pos = Integer.parseInt(posStr.trim());
+                if (pos < 0 || pos > visualPanel.getElementCount()) {
+                    statusLabel.setText("Status: Invalid position");
+                    return;
+                }
+                if (visualPanel.insertAtIndex(value, pos)) {
+                    statusLabel.setText("Status: Inserted " + value + " at position " + pos);
+                    valueInput.setText("");
+                } else {
+                    statusLabel.setText("Status: Duplicate value not allowed");
+                }
             } catch (NumberFormatException ex) {
-                statusLabel.setText("Status: Invalid input - enter an integer");
+                statusLabel.setText("Status: Invalid input - enter integers");
             }
         });
 
@@ -139,11 +164,31 @@ class DSVisualizerFrame extends JFrame {
         });
 
         deleteMiddleBtn.addActionListener(e -> {
-            Integer removed = visualPanel.removeAtPosition("middle");
-            if (removed != null) {
-                statusLabel.setText("Status: Deleted " + removed + " from middle");
-            } else {
+            if (visualPanel.getElementCount() == 0) {
                 statusLabel.setText("Status: List is empty!");
+                return;
+            }
+            // Ask for position
+            String posStr = JOptionPane.showInputDialog(this,
+                    "Enter position index to delete (0 to " + (visualPanel.getElementCount() - 1) + "):",
+                    "Delete Position",
+                    JOptionPane.QUESTION_MESSAGE);
+            if (posStr == null)
+                return; // Cancelled
+            try {
+                int pos = Integer.parseInt(posStr.trim());
+                if (pos < 0 || pos >= visualPanel.getElementCount()) {
+                    statusLabel.setText("Status: Invalid position");
+                    return;
+                }
+                Integer removed = visualPanel.removeAtIndex(pos);
+                if (removed != null) {
+                    statusLabel.setText("Status: Deleted " + removed + " from position " + pos);
+                } else {
+                    statusLabel.setText("Status: Could not delete");
+                }
+            } catch (NumberFormatException ex) {
+                statusLabel.setText("Status: Invalid input - enter an integer");
             }
         });
 
@@ -171,8 +216,98 @@ class DSVisualizerFrame extends JFrame {
         });
 
         randomBtn.addActionListener(e -> {
-            visualPanel.fillRandom(8);
-            statusLabel.setText("Status: Filled with random elements");
+            int size = 8; // default
+            try {
+                String sizeText = sizeInput.getText().trim();
+                if (!sizeText.isEmpty()) {
+                    size = Integer.parseInt(sizeText);
+                    if (size <= 0 || size > 50) {
+                        statusLabel.setText("Status: Size must be between 1 and 50");
+                        return;
+                    }
+                }
+            } catch (NumberFormatException ex) {
+                statusLabel.setText("Status: Invalid size - using default 8");
+            }
+            visualPanel.fillRandom(size);
+            statusLabel.setText("Status: Filled with " + size + " random elements");
+        });
+
+        // Search button listener
+        searchBtn.addActionListener(e -> {
+            String input = valueInput.getText().trim();
+            if (input.isEmpty()) {
+                statusLabel.setText("Status: Enter a value to search");
+                return;
+            }
+            try {
+                int value = Integer.parseInt(input);
+                int index = visualPanel.searchElement(value);
+                if (index >= 0) {
+                    statusLabel.setText("Status: Found " + value + " at index " + index);
+                } else {
+                    statusLabel.setText("Status: " + value + " not found");
+                }
+            } catch (NumberFormatException ex) {
+                statusLabel.setText("Status: Invalid input - enter an integer");
+            }
+        });
+
+        // Dequeue specific buttons
+        addFrontBtn.addActionListener(e -> {
+            String input = valueInput.getText().trim();
+            if (input.isEmpty()) {
+                statusLabel.setText("Status: Please enter a value");
+                return;
+            }
+            try {
+                int value = Integer.parseInt(input);
+                if (visualPanel.addElementFront(value)) {
+                    statusLabel.setText("Status: Added " + value + " at front");
+                    valueInput.setText("");
+                } else {
+                    statusLabel.setText("Status: Duplicate value not allowed");
+                }
+            } catch (NumberFormatException ex) {
+                statusLabel.setText("Status: Invalid input - enter an integer");
+            }
+        });
+
+        addRearBtn.addActionListener(e -> {
+            String input = valueInput.getText().trim();
+            if (input.isEmpty()) {
+                statusLabel.setText("Status: Please enter a value");
+                return;
+            }
+            try {
+                int value = Integer.parseInt(input);
+                if (visualPanel.addElementRear(value)) {
+                    statusLabel.setText("Status: Added " + value + " at rear");
+                    valueInput.setText("");
+                } else {
+                    statusLabel.setText("Status: Duplicate value not allowed");
+                }
+            } catch (NumberFormatException ex) {
+                statusLabel.setText("Status: Invalid input - enter an integer");
+            }
+        });
+
+        removeFrontBtn.addActionListener(e -> {
+            Integer removed = visualPanel.removeElementFront();
+            if (removed != null) {
+                statusLabel.setText("Status: Removed " + removed + " from front");
+            } else {
+                statusLabel.setText("Status: Dequeue is empty!");
+            }
+        });
+
+        removeRearBtn.addActionListener(e -> {
+            Integer removed = visualPanel.removeElementRear();
+            if (removed != null) {
+                statusLabel.setText("Status: Removed " + removed + " from rear");
+            } else {
+                statusLabel.setText("Status: Dequeue is empty!");
+            }
         });
 
         // Allow Enter key to add element
@@ -195,24 +330,37 @@ class DSVisualizerFrame extends JFrame {
         top.add(new JSeparator(JSeparator.VERTICAL));
         top.add(new JLabel("Value:"));
         top.add(valueInput);
+        top.add(new JLabel("Size:"));
+        top.add(sizeInput);
         top.add(pushPushBtn);
         top.add(popRemoveBtn);
         top.add(clearBtn);
         top.add(randomBtn);
+        top.add(searchBtn);
         top.add(insertBeginBtn);
         top.add(insertMiddleBtn);
         top.add(insertEndBtn);
         top.add(deleteBeginBtn);
         top.add(deleteMiddleBtn);
         top.add(deleteEndBtn);
+        // Dequeue specific buttons
+        top.add(addFrontBtn);
+        top.add(addRearBtn);
+        top.add(removeFrontBtn);
+        top.add(removeRearBtn);
 
-        // Initially hide insert/delete position buttons (only for LinkedLists)
+        // Initially hide context-specific buttons
         insertBeginBtn.setVisible(false);
         insertMiddleBtn.setVisible(false);
         insertEndBtn.setVisible(false);
         deleteBeginBtn.setVisible(false);
         deleteMiddleBtn.setVisible(false);
         deleteEndBtn.setVisible(false);
+        searchBtn.setVisible(false);
+        addFrontBtn.setVisible(false);
+        addRearBtn.setVisible(false);
+        removeFrontBtn.setVisible(false);
+        removeRearBtn.setVisible(false);
 
         JPanel bottom = new JPanel(new FlowLayout(FlowLayout.LEFT));
         bottom.add(statusLabel);
@@ -224,12 +372,29 @@ class DSVisualizerFrame extends JFrame {
 
     private void updateInsertButtonsVisibility(String dsType) {
         boolean isLinkedList = dsType.contains("LinkedList");
+        boolean isDequeue = dsType.equals("Dequeue");
+        boolean isCircular = dsType.equals("Circular LinkedList");
+
+        // LinkedList specific buttons
         insertBeginBtn.setVisible(isLinkedList);
         insertMiddleBtn.setVisible(isLinkedList);
         insertEndBtn.setVisible(isLinkedList);
         deleteBeginBtn.setVisible(isLinkedList);
         deleteMiddleBtn.setVisible(isLinkedList);
         deleteEndBtn.setVisible(isLinkedList);
+
+        // Search button (visible for Circular LinkedList)
+        searchBtn.setVisible(isCircular);
+
+        // Dequeue specific buttons
+        addFrontBtn.setVisible(isDequeue);
+        addRearBtn.setVisible(isDequeue);
+        removeFrontBtn.setVisible(isDequeue);
+        removeRearBtn.setVisible(isDequeue);
+
+        // Hide standard push/pop for dequeue (use front/rear buttons instead)
+        pushPushBtn.setVisible(!isDequeue);
+        popRemoveBtn.setVisible(!isDequeue);
     }
 }
 
@@ -254,6 +419,7 @@ class DSVisualizerPanel extends JPanel {
     private void initializeColors() {
         colorMap.put("Stack", new Color(52, 152, 219)); // Blue
         colorMap.put("Queue", new Color(46, 204, 113)); // Green
+        colorMap.put("Dequeue", new Color(52, 73, 94)); // Dark blue-grey
         colorMap.put("LinkedList", new Color(155, 89, 182)); // Purple
         colorMap.put("Circular LinkedList", new Color(230, 126, 34)); // Orange
         colorMap.put("Doubly LinkedList", new Color(231, 76, 60)); // Red
@@ -271,6 +437,12 @@ class DSVisualizerPanel extends JPanel {
     }
 
     public void switchDataStructure(String type) {
+        // Preserve existing values when switching
+        java.util.List<Integer> oldValues = new ArrayList<>();
+        if (currentDS != null && !currentDS.elements.isEmpty()) {
+            oldValues.addAll(currentDS.elements);
+        }
+
         currentType = type;
         switch (type) {
             case "Stack":
@@ -278,6 +450,9 @@ class DSVisualizerPanel extends JPanel {
                 break;
             case "Queue":
                 currentDS = new QueueDS();
+                break;
+            case "Dequeue":
+                currentDS = new DequeueDS();
                 break;
             case "LinkedList":
                 currentDS = new LinkedListDS();
@@ -291,6 +466,11 @@ class DSVisualizerPanel extends JPanel {
             default:
                 currentDS = new StackDS();
         }
+
+        // Restore values to new structure
+        for (Integer val : oldValues) {
+            currentDS.add(val);
+        }
         repaint();
     }
 
@@ -299,6 +479,20 @@ class DSVisualizerPanel extends JPanel {
             currentDS.add(value);
             repaint();
         }
+    }
+
+    // Add element with duplicate check
+    public boolean addElementWithCheck(int value) {
+        if (currentDS != null) {
+            // Check for duplicates
+            if (currentDS.elements.contains(value)) {
+                return false;
+            }
+            currentDS.add(value);
+            repaint();
+            return true;
+        }
+        return false;
     }
 
     public Integer removeElement() {
@@ -319,8 +513,14 @@ class DSVisualizerPanel extends JPanel {
         if (currentDS != null) {
             currentDS.clear();
             Random rnd = new Random();
+            java.util.Set<Integer> used = new java.util.HashSet<>();
             for (int i = 0; i < count; i++) {
-                currentDS.add(rnd.nextInt(100) + 1);
+                int val;
+                do {
+                    val = rnd.nextInt(100) + 1;
+                } while (used.contains(val));
+                used.add(val);
+                currentDS.add(val);
             }
             repaint();
         }
@@ -338,6 +538,92 @@ class DSVisualizerPanel extends JPanel {
             Integer removed = ((LinkedListBase) currentDS).removeAt(position);
             repaint();
             return removed;
+        }
+        return null;
+    }
+
+    // Get element count
+    public int getElementCount() {
+        return currentDS != null ? currentDS.elements.size() : 0;
+    }
+
+    // Insert at specific index with duplicate check
+    public boolean insertAtIndex(int value, int index) {
+        if (currentDS != null && currentDS instanceof LinkedListBase) {
+            // Check for duplicates
+            if (currentDS.elements.contains(value)) {
+                return false;
+            }
+            if (index >= 0 && index <= currentDS.elements.size()) {
+                currentDS.elements.add(index, value);
+                repaint();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Remove at specific index
+    public Integer removeAtIndex(int index) {
+        if (currentDS != null && currentDS instanceof LinkedListBase) {
+            if (index >= 0 && index < currentDS.elements.size()) {
+                Integer removed = currentDS.elements.remove(index);
+                repaint();
+                return removed;
+            }
+        }
+        return null;
+    }
+
+    // Search for element and return index (-1 if not found)
+    public int searchElement(int value) {
+        if (currentDS != null) {
+            for (int i = 0; i < currentDS.elements.size(); i++) {
+                if (currentDS.elements.get(i) == value) {
+                    currentDS.highlightIndex = i; // Set highlight
+                    repaint();
+                    return i;
+                }
+            }
+            currentDS.highlightIndex = -1;
+            repaint();
+        }
+        return -1;
+    }
+
+    // Dequeue operations
+    public boolean addElementFront(int value) {
+        if (currentDS != null && currentDS instanceof DequeueDS) {
+            boolean result = ((DequeueDS) currentDS).addFront(value);
+            repaint();
+            return result;
+        }
+        return false;
+    }
+
+    public boolean addElementRear(int value) {
+        if (currentDS != null && currentDS instanceof DequeueDS) {
+            boolean result = ((DequeueDS) currentDS).addRear(value);
+            repaint();
+            return result;
+        }
+        return false;
+    }
+
+    public Integer removeElementFront() {
+        if (currentDS != null && currentDS instanceof DequeueDS) {
+            Integer result = ((DequeueDS) currentDS).removeFront();
+            repaint();
+            return result;
+        }
+        return null;
+    }
+
+    public Integer removeElementRear() {
+        if (currentDS != null && currentDS instanceof DequeueDS) {
+            Integer result = ((DequeueDS) currentDS).removeRear();
+            repaint();
+            return result;
         }
         return null;
     }
@@ -416,6 +702,7 @@ class DSVisualizerPanel extends JPanel {
  */
 abstract class BaseDataStructure {
     protected java.util.List<Integer> elements = new ArrayList<>();
+    protected int highlightIndex = -1; // For search highlighting
 
     public void add(int value) {
         elements.add(value);
@@ -477,7 +764,7 @@ class StackDS extends BaseDataStructure {
             if (displayIndex == elements.size() - 1) { // Top of stack (most recent)
                 g.setColor(new Color(255, 200, 0)); // Highlight top
                 g.fillRect(startX, y, boxWidth, boxHeight);
-                g.setColor(Color.BLACK);
+                g.setColor(new Color(255, 220, 50)); // Bright yellow for visibility
                 g.drawString("TOP →", startX - 80, y + boxHeight / 2 + 5);
             } else {
                 g.setColor(color);
@@ -545,12 +832,12 @@ class QueueDS extends BaseDataStructure {
             if (i == 0) { // Front of queue
                 g.setColor(new Color(0, 255, 0));
                 g.fillRect(startX, y, boxWidth, boxHeight);
-                g.setColor(Color.BLACK);
+                g.setColor(new Color(50, 255, 100)); // Bright green for visibility
                 g.drawString("FRONT →", startX - 90, y + boxHeight / 2 + 5);
             } else if (i == elements.size() - 1) { // Rear
                 g.setColor(new Color(255, 100, 100));
                 g.fillRect(startX, y, boxWidth, boxHeight);
-                g.setColor(Color.BLACK);
+                g.setColor(new Color(255, 120, 120)); // Bright red for visibility
                 g.drawString("REAR →", startX - 90, y + boxHeight / 2 + 5);
             } else {
                 g.setColor(color);
@@ -971,6 +1258,17 @@ class CircularLinkedListDS extends BaseDataStructure implements LinkedListBase {
         g.fillPolygon(new int[] { startX + 6, startX, startX }, new int[] { centerY + 12, centerY + 8, centerY + 16 },
                 3);
 
+        // Draw TAIL label pointing to last node
+        int tailX = startX + (elements.size() - 1) * (nodeWidth + spacing);
+        g.setColor(new Color(255, 100, 100)); // Red for tail
+        g.setFont(new Font("Arial", Font.BOLD, 12));
+        g.drawString("TAIL", tailX + nodeWidth + 15, centerY + 10);
+        // small arrow from TAIL to last node
+        g.setStroke(new BasicStroke(2));
+        g.drawLine(tailX + nodeWidth + 10, centerY + 12, tailX + nodeWidth - 6, centerY + 12);
+        g.fillPolygon(new int[] { tailX + nodeWidth - 6, tailX + nodeWidth, tailX + nodeWidth },
+                new int[] { centerY + 12, centerY + 8, centerY + 16 }, 3);
+
         // Info
         g.setColor(new Color(150, 150, 150));
         g.setFont(new Font("Arial", Font.PLAIN, 12));
@@ -1172,5 +1470,140 @@ class DoublyLinkedListDS extends BaseDataStructure implements LinkedListBase {
         g.setColor(new Color(150, 150, 150));
         g.drawString("Size: " + elements.size(), startX, h - 35);
         g.drawString("Doubly LinkedList - Two-way traversal", startX, h - 12);
+    }
+}
+
+/*
+ * ============================== Dequeue (Double-Ended Queue)
+ * ==============================
+ */
+class DequeueDS extends BaseDataStructure {
+
+    public boolean addFront(int value) {
+        // Check for duplicates
+        if (elements.contains(value)) {
+            return false;
+        }
+        elements.add(0, value);
+        return true;
+    }
+
+    public boolean addRear(int value) {
+        // Check for duplicates
+        if (elements.contains(value)) {
+            return false;
+        }
+        elements.add(value);
+        return true;
+    }
+
+    public Integer removeFront() {
+        if (elements.isEmpty())
+            return null;
+        return elements.remove(0);
+    }
+
+    public Integer removeRear() {
+        if (elements.isEmpty())
+            return null;
+        return elements.remove(elements.size() - 1);
+    }
+
+    @Override
+    public void add(int value) {
+        // Default add goes to rear
+        addRear(value);
+    }
+
+    @Override
+    public Integer remove() {
+        // Default remove from front (like queue)
+        return removeFront();
+    }
+
+    @Override
+    public void draw(Graphics2D g, int w, int h, Color color, int animationPhase) {
+        int boxWidth = 80;
+        int boxHeight = 50;
+        int spacing = 10;
+        int startX = 100;
+        int centerY = h / 2 - boxHeight / 2;
+
+        g.setFont(new Font("Arial", Font.BOLD, 14));
+
+        if (elements.isEmpty()) {
+            g.setColor(Color.WHITE);
+            g.drawString("Dequeue is empty", startX, centerY + boxHeight / 2);
+            return;
+        }
+
+        // Draw elements horizontally
+        for (int i = 0; i < elements.size(); i++) {
+            int x = startX + i * (boxWidth + spacing);
+            int y = centerY;
+
+            // Highlight for search
+            if (i == highlightIndex) {
+                g.setColor(new Color(255, 255, 0)); // Yellow highlight
+            } else if (i == 0) {
+                g.setColor(new Color(50, 200, 50)); // Green for front
+            } else if (i == elements.size() - 1) {
+                g.setColor(new Color(200, 50, 50)); // Red for rear
+            } else {
+                g.setColor(color);
+            }
+            g.fillRect(x, y, boxWidth, boxHeight);
+
+            g.setColor(Color.BLACK);
+            g.setStroke(new BasicStroke(2));
+            g.drawRect(x, y, boxWidth, boxHeight);
+
+            // Draw value
+            g.setColor(Color.WHITE);
+            String val = String.valueOf(elements.get(i));
+            FontMetrics fm = g.getFontMetrics();
+            int textX = x + (boxWidth - fm.stringWidth(val)) / 2;
+            int textY = y + ((boxHeight - fm.getHeight()) / 2) + fm.getAscent();
+            g.drawString(val, textX, textY);
+
+            // Draw index
+            g.setColor(new Color(180, 180, 180));
+            g.setFont(new Font("Arial", Font.PLAIN, 10));
+            g.drawString("[" + i + "]", x + boxWidth / 2 - 8, y + boxHeight + 15);
+            g.setFont(new Font("Arial", Font.BOLD, 14));
+
+            // Draw arrows between elements
+            if (i < elements.size() - 1) {
+                int arrowStartX = x + boxWidth;
+                int arrowEndX = x + boxWidth + spacing;
+                int arrowY = y + boxHeight / 2;
+                g.setColor(new Color(100, 150, 255));
+                g.setStroke(new BasicStroke(2));
+                // Right arrow
+                g.drawLine(arrowStartX, arrowY - 5, arrowEndX, arrowY - 5);
+                g.fillPolygon(new int[] { arrowEndX, arrowEndX - 6, arrowEndX - 6 },
+                        new int[] { arrowY - 5, arrowY - 9, arrowY - 1 }, 3);
+                // Left arrow
+                g.drawLine(arrowEndX, arrowY + 5, arrowStartX, arrowY + 5);
+                g.fillPolygon(new int[] { arrowStartX, arrowStartX + 6, arrowStartX + 6 },
+                        new int[] { arrowY + 5, arrowY + 1, arrowY + 9 }, 3);
+            }
+        }
+
+        // Draw FRONT label
+        g.setColor(new Color(50, 255, 100));
+        g.setFont(new Font("Arial", Font.BOLD, 12));
+        g.drawString("FRONT", startX + boxWidth / 2 - 20, centerY - 15);
+
+        // Draw REAR label
+        int rearX = startX + (elements.size() - 1) * (boxWidth + spacing);
+        g.setColor(new Color(255, 100, 100));
+        g.drawString("REAR", rearX + boxWidth / 2 - 15, centerY - 15);
+
+        // Draw info
+        g.setColor(new Color(150, 150, 150));
+        g.setFont(new Font("Arial", Font.PLAIN, 12));
+        g.drawString("Size: " + elements.size(), startX, h - 50);
+        g.drawString("Dequeue - Double-Ended Queue (add/remove from both ends)", startX, h - 25);
     }
 }

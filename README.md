@@ -35,21 +35,26 @@ Visualize 8 popular sorting algorithms with step-by-step animations:
 - **Completion stats** showing operation count and execution time
 
 ### 🔗 Data Structure Visualizer
-Interactive visualization of 5 fundamental data structures:
+Interactive visualization of 6 fundamental data structures:
 
 | Data Structure | Type | Description |
 |----------------|------|-------------|
 | **Stack** | LIFO | Last In, First Out |
 | **Queue** | FIFO | First In, First Out |
+| **Dequeue** | Double-Ended | Add/Remove from both ends |
 | **LinkedList** | Singly Linked | One-way traversal |
-| **Circular LinkedList** | Circular | Last node points to first |
+| **Circular LinkedList** | Circular | Last node points to first (HEAD & TAIL visible) |
 | **Doubly LinkedList** | Two-way | Forward and backward traversal |
 
 **Features:**
 - Add/Remove elements interactively
-- **Insert at any position** - beginning, middle, or end (LinkedLists)
-- **Delete at any position** - beginning, middle, or end (LinkedLists)
-- Random fill functionality
+- **Insert at any position** - beginning, specific index, or end (LinkedLists)
+- **Delete at any position** - beginning, specific index, or end (LinkedLists)
+- **Custom size input** for random fill
+- **Duplicate value prevention** - restricts duplicate entries
+- **Search functionality** (Circular LinkedList)
+- **Value preservation** when switching between data structures
+- Random fill functionality with unique values
 - Memory address simulation for linked structures
 - Visual pointer arrows between nodes
 
@@ -201,3 +206,13 @@ For detailed project documentation, refer to the included `ADS_Project_Documenta
 - 🧹 **Clear Button**: Added "Clear" button to reset visualization to blank state; app now starts blank by default
 - ⏱️ **Execution Time Tracking**: Status now displays completion message with operation count and elapsed time:
   `Status : Completed Sorting in (X Operations) and (Y Time)`
+
+**Data Structure Visualizer Enhancements:**
+- 🆕 **Dequeue Data Structure**: Added double-ended queue with add/remove from both front and rear
+- 🎨 **Improved Label Visibility**: Changed TOP/FRONT/REAR labels from black to bright, visible colors
+- 🔍 **Search Functionality**: Added search button for Circular LinkedList with index display
+- 📍 **Position-Based Insert/Delete**: Middle insert/delete now prompts for specific position index
+- 🚫 **Duplicate Prevention**: All data structures now reject duplicate values
+- 💾 **Value Preservation**: Values are preserved when switching between data structures
+- 📏 **Custom Size Input**: Added size input field for Random Fill (1-50 elements)
+- 🏷️ **TAIL Label**: Added visible TAIL label to Circular LinkedList visualization
