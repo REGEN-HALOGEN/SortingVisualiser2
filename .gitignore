@@ -1,7 +1,5 @@
 # Java build artifacts
 *.class
-
-# Packaged outputs
 *.jar
 *.war
 *.ear
@@ -14,3 +12,11 @@
 Thumbs.db
 .vscode/
 .idea/
+
+# Keep only packaged Windows release ZIP files from SortingVisualizerApp
+SortingVisualizerApp/**
+!SortingVisualizerApp/package/
+SortingVisualizerApp/package/**
+!SortingVisualizerApp/package/windows/
+SortingVisualizerApp/package/windows/**
+!SortingVisualizerApp/package/windows/*.zip

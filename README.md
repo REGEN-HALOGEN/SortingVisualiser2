@@ -99,6 +99,21 @@ Interactive visualization of 6 fundamental data structures:
    java VisualizerHub
    ```
 
+## ⬇️ Download the Windows App
+
+**VisualizerHub** is a Java Swing desktop app for exploring sorting algorithms and data structures through interactive visualizations.
+
+- Releases page: [GitHub Releases](https://github.com/REGEN-HALOGEN/SortingVisualiser2/releases)
+- Latest Windows ZIP: [Download the latest VisualizerHub ZIP](https://github.com/REGEN-HALOGEN/SortingVisualiser2/releases/latest/download/VisualizerHub-1.2.0-windows-portable.zip)
+
+### How to run
+1. Open the latest release from the GitHub Releases page.
+2. Download the Windows ZIP file.
+3. Extract the ZIP anywhere on your PC.
+4. Open the extracted folder and run `VisualizerHub.exe`.
+
+No separate Java installation is required for the packaged Windows release.
+
 ### Running Individual Visualizers
 
 You can also run each visualizer independently:
@@ -120,6 +135,7 @@ SortingVisualiser2/
 ├── VisualizerHub.java           # Main hub application (entry point)
 ├── SortingVisualiser.java       # Sorting algorithms visualizer
 ├── DataStructureVisualizer.java # Data structures visualizer
+├── SortingVisualizerApp/        # Packaged Windows release artifacts
 ├── ADS_Project_Documentation.pdf # Project documentation
 ├── .gitignore                    # Ignore generated build artifacts
 └── README.md                     # This file
