@@ -1,0 +1,16 @@
+# Java build artifacts
+*.class
+
+# Packaged outputs
+*.jar
+*.war
+*.ear
+
+# Logs
+*.log
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

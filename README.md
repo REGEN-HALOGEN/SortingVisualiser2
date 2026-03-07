@@ -67,9 +67,10 @@ Interactive visualization of 6 fundamental data structures:
 - Linked lists allow duplicate values, while bounded linear structures enforce stricter validation
 
 ### 🎨 Modern UI
-- Dark theme with gradient backgrounds
-- Rounded cards with hover effects
-- Custom styled navigation buttons with icons
+- Minimal hub dashboard with centered responsive layout
+- Light and dark mode toggle from the top navigation
+- Rounded launcher cards with hover effects
+- Clickable GitHub attribution footer in the hub
 - Smooth animations and visual feedback
 
 ---
@@ -120,9 +121,11 @@ SortingVisualiser2/
 ├── SortingVisualiser.java       # Sorting algorithms visualizer
 ├── DataStructureVisualizer.java # Data structures visualizer
 ├── ADS_Project_Documentation.pdf # Project documentation
-├── *.class                       # Compiled Java bytecode files
+├── .gitignore                    # Ignore generated build artifacts
 └── README.md                     # This file
 ```
+
+> Compiled `.class` files are treated as generated artifacts and are intentionally excluded from version control.
 
 ### Key Classes
 
@@ -211,6 +214,12 @@ For detailed project documentation, refer to the included `ADS_Project_Documenta
 ## 📝 Changelog
 
 ### v1.2.0 (March 2026)
+**Visualizer Hub Enhancements:**
+- ✅ **Minimal landing page refresh**: cleaner hierarchy, more balanced spacing, and simplified top navigation
+- ✅ **Theme toggle**: added light/dark mode switching with sun/moon control
+- ✅ **Responsive card layout polish**: centered cards and footer alignment now stay visually balanced when resizing
+- ✅ **Attribution footer**: added "Built by REGEN-HALOGEN" and clickable GitHub profile link
+
 **Data Structure Visualizer Enhancements:**
 - ✅ **Deque validation fixes**: front/rear insertion now respects the configured capacity and rejects invalid operations cleanly
 - ✅ **Index operation fixes**: linked-list insertion and deletion now use structure-aware index logic instead of bypassing pointer metadata
