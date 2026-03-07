@@ -199,7 +199,6 @@ This project was developed as part of an Algorithm and Data Structures (ADS) cou
 - **Anirudh**
 - **Pravesh**
 - **Ajinkya**
-- **Prashant**
 
 **SIES College of Management Studies**  
 MCA Department | Batch 2025-27
