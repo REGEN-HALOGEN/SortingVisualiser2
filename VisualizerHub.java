@@ -326,7 +326,7 @@ class HubFrame extends JFrame {
 
     private void openSortingVisualizer() {
         if (sortingVisualizerWindow == null || !sortingVisualizerWindow.isDisplayable()) {
-            sortingVisualizerWindow = new VisualFrame();
+            sortingVisualizerWindow = SortingVisualiser.createFrame();
             sortingVisualizerWindow.setTitle("Sorting Visualizer");
             sortingVisualizerWindow.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
             sortingVisualizerWindow.setLocationRelativeTo(null); // Center on screen
@@ -340,7 +340,7 @@ class HubFrame extends JFrame {
 
     private void openDataStructureVisualizer() {
         if (dataStructureVisualizerWindow == null || !dataStructureVisualizerWindow.isDisplayable()) {
-            dataStructureVisualizerWindow = new DSVisualizerFrame();
+            dataStructureVisualizerWindow = DataStructureVisualizer.createFrame();
             dataStructureVisualizerWindow.setTitle("Data Structure Visualizer");
             dataStructureVisualizerWindow.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
             dataStructureVisualizerWindow.setLocationRelativeTo(null); // Center on screen

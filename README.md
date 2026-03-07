@@ -33,6 +33,8 @@ Visualize 8 popular sorting algorithms with step-by-step animations:
 - Pause/Resume/Reset functionality
 - **Clear button** to reset to blank state (default on launch)
 - **Completion stats** showing operation count and execution time
+- **View Code** panel for the selected sorting algorithm
+- Step playback architecture with line-aware operation replay
 
 ### 🔗 Data Structure Visualizer
 Interactive visualization of 6 fundamental data structures:
@@ -51,12 +53,18 @@ Interactive visualization of 6 fundamental data structures:
 - **Insert at any position** - beginning, specific index, or end (LinkedLists)
 - **Delete at any position** - beginning, specific index, or end (LinkedLists)
 - **Custom size input** for random fill
-- **Duplicate value prevention** - restricts duplicate entries
-- **Search functionality** (Circular LinkedList)
+- **Strict capacity enforcement** for bounded structures such as Stack, Queue, and Dequeue
+- **Clear validation messages** for invalid operations, overflow, underflow, and bad indexes
+- **Search functionality** with visual highlight and selection feedback
 - **Value preservation** when switching between data structures
 - Random fill functionality with unique values
-- Memory address simulation for linked structures
+- Memory address / node ID simulation for linked structures
 - Visual pointer arrows between nodes
+- **Node inspector panel** showing value, node ID, next reference, previous reference, and node details on click
+- **View Code** panel for structure operations such as push, pop, enqueue, insert, delete, and traversal
+- Improved animated transitions for insertion, deletion, movement, and traversal emphasis
+- Linked-list operations now route through structure-aware index handling so pointer metadata stays correct
+- Linked lists allow duplicate values, while bounded linear structures enforce stricter validation
 
 ### 🎨 Modern UI
 - Dark theme with gradient backgrounds
@@ -142,10 +150,13 @@ SortingVisualiser2/
 3. Click **Push/Add** to add elements
 4. Click **Pop/Remove** to remove elements
 5. For LinkedLists:
-   - Use **Insert at Begin/Middle/End** for positional insertion
-   - Use **Delete Begin/Middle/End** for positional deletion
-6. Click **Random Fill** to populate with random values
-7. Click **Clear** to empty the data structure
+   - Use **Insert at Begin/Index/End** for positional insertion
+   - Use **Delete Begin/Index/End** for positional deletion
+6. Use **Search** to highlight a value and inspect the matching node
+7. Click a node/box to open its details in the inspector panel
+8. Use **View Code** to open operation-specific reference code
+9. Click **Random Fill** to populate with random values
+10. Click **Clear** to empty the data structure
 
 ---
 
@@ -199,6 +210,20 @@ For detailed project documentation, refer to the included `ADS_Project_Documenta
 
 ## 📝 Changelog
 
+### v1.2.0 (March 2026)
+**Data Structure Visualizer Enhancements:**
+- ✅ **Deque validation fixes**: front/rear insertion now respects the configured capacity and rejects invalid operations cleanly
+- ✅ **Index operation fixes**: linked-list insertion and deletion now use structure-aware index logic instead of bypassing pointer metadata
+- ✅ **Consistent error handling**: clear status messages are shown for overflow, underflow, invalid indexes, and unsupported actions
+- ✅ **Improved animations**: insertions, deletions, highlights, and pointer transitions animate more smoothly
+- ✅ **Node inspector**: clicking any visible element opens a detail panel with value, node ID, and reference information
+- ✅ **Operation code viewer**: added a dedicated code panel for stack, queue, deque, and linked-list operations
+- ✅ **Constraint enforcement review**: stack, queue, deque, singly linked list, circular linked list, and doubly linked list now enforce constraints more consistently
+
+**Sorting Visualizer Enhancements:**
+- ✅ **Algorithm code viewer**: reusable formatted code panel for the selected sorting algorithm
+- ✅ **Operation playback polish**: step-based replay, highlighting, and status updates remain documented in the UI flow
+
 ### v1.1.0 (January 2026)
 **Sorting Visualizer Enhancements:**
 - ✨ **Size Counter Display**: Added a visible box next to the "Size:" label showing the current array size in real-time
@@ -212,7 +237,7 @@ For detailed project documentation, refer to the included `ADS_Project_Documenta
 - 🎨 **Improved Label Visibility**: Changed TOP/FRONT/REAR labels from black to bright, visible colors
 - 🔍 **Search Functionality**: Added search button for Circular LinkedList with index display
 - 📍 **Position-Based Insert/Delete**: Middle insert/delete now prompts for specific position index
-- 🚫 **Duplicate Prevention**: All data structures now reject duplicate values
+- 🚫 **Duplicate Prevention**: Linear bounded structures reject duplicate values
 - 💾 **Value Preservation**: Values are preserved when switching between data structures
 - 📏 **Custom Size Input**: Added size input field for Random Fill (1-50 elements)
 - 🏷️ **TAIL Label**: Added visible TAIL label to Circular LinkedList visualization
