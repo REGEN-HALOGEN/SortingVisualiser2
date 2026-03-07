@@ -58,6 +58,7 @@ Interactive visualization of 6 fundamental data structures:
 - **Search functionality** with visual highlight and selection feedback
 - **Value preservation** when switching between data structures
 - Random fill functionality with unique values
+- **Zoom controls** with buttons and `Ctrl + mouse wheel` for focused structure inspection
 - Memory address / node ID simulation for linked structures
 - Visual pointer arrows between nodes
 - **Node inspector panel** showing value, node ID, next reference, previous reference, and node details on click
@@ -104,7 +105,7 @@ Interactive visualization of 6 fundamental data structures:
 **VisualizerHub** is a Java Swing desktop app for exploring sorting algorithms and data structures through interactive visualizations.
 
 - Releases page: [GitHub Releases](https://github.com/REGEN-HALOGEN/SortingVisualiser2/releases)
-- Latest Windows ZIP: [Download the latest VisualizerHub ZIP](https://github.com/REGEN-HALOGEN/SortingVisualiser2/releases/latest/download/VisualizerHub-1.2.0-windows-portable.zip)
+- Latest Windows ZIP: [Download the latest VisualizerHub ZIP](https://github.com/REGEN-HALOGEN/SortingVisualiser2/releases/latest/download/VisualizerHub-1.2.1-windows-portable.zip)
 
 ### How to run
 1. Open the latest release from the GitHub Releases page.
@@ -175,7 +176,8 @@ SortingVisualiser2/
 7. Click a node/box to open its details in the inspector panel
 8. Use **View Code** to open operation-specific reference code
 9. Click **Random Fill** to populate with random values
-10. Click **Clear** to empty the data structure
+10. Use **Zoom In/Zoom Out** or hold `Ctrl` and scroll the mouse wheel to scale the structure drawing
+11. Click **Clear** to empty the data structure
 
 ---
 
@@ -228,6 +230,14 @@ For detailed project documentation, refer to the included `ADS_Project_Documenta
 ---
 
 ## 📝 Changelog
+
+### v1.2.1 (March 2026)
+**Data Structure Visualizer Enhancements:**
+- ✅ **Live structure size**: current element count now updates automatically in the status row
+- ✅ **Random fill layout polish**: fill count input is placed beside the random fill action for a clearer flow
+- ✅ **View zoom controls**: added dedicated zoom in and zoom out buttons for the data-structure canvas
+- ✅ **Ctrl + mouse wheel zoom**: hold Ctrl and use the mouse wheel to zoom the structure drawing interactively
+- ✅ **Stable header layout while zooming**: the title area stays fixed while only the data-structure graphics scale
 
 ### v1.2.0 (March 2026)
 **Visualizer Hub Enhancements:**

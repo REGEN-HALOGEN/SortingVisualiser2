@@ -349,10 +349,13 @@ class DSVisualizerFrame extends JFrame {
             new String[] { "Stack", "Queue", "Dequeue", "LinkedList", "Circular LinkedList", "Doubly LinkedList" });
     private final JTextField valueInput = new JTextField(6);
     private final JTextField sizeInput = new JTextField(3);
+    private final JLabel sizeLabel = new JLabel("Size: 0");
     private final JButton pushPushBtn = new JButton("Push/Add");
     private final JButton popRemoveBtn = new JButton("Pop/Remove");
     private final JButton clearBtn = new JButton("Clear");
     private final JButton randomBtn = new JButton("Random Fill");
+    private final JButton zoomOutBtn = new JButton("Zoom Out");
+    private final JButton zoomInBtn = new JButton("Zoom In");
     private final JButton insertBeginBtn = new JButton("Insert at Begin");
     private final JButton insertMiddleBtn = new JButton("Insert at Index");
     private final JButton insertEndBtn = new JButton("Insert at End");
@@ -389,9 +392,13 @@ class DSVisualizerFrame extends JFrame {
         add(buildControlPanel(), BorderLayout.SOUTH);
 
         visualPanel.setNodeSelectionListener(this::updateInspector);
+        visualPanel.setElementCountListener(this::updateSizeDisplay);
+        visualPanel.setZoomListener(zoom -> setStatus("Zoom: " + formatZoom(zoom)));
+        sizeInput.setText("8");
 
         visualPanel.switchDataStructure("Stack");
         updateInsertButtonsVisibility("Stack");
+        updateSizeDisplay(visualPanel.getElementCount());
         updateInspector(null);
 
         dsSelect.addActionListener(e -> {
@@ -531,6 +538,14 @@ class DSVisualizerFrame extends JFrame {
 
         viewCodeBtn.addActionListener(e -> openCodeViewer());
 
+        zoomInBtn.addActionListener(e -> {
+            visualPanel.zoomIn();
+        });
+
+        zoomOutBtn.addActionListener(e -> {
+            visualPanel.zoomOut();
+        });
+
         addFrontBtn.addActionListener(e -> {
             Integer value = readInputValue();
             if (value == null) {
@@ -615,12 +630,14 @@ class DSVisualizerFrame extends JFrame {
         top.add(new JSeparator(JSeparator.VERTICAL));
         top.add(new JLabel("Value:"));
         top.add(valueInput);
-        top.add(new JLabel("Size:"));
-        top.add(sizeInput);
         top.add(pushPushBtn);
         top.add(popRemoveBtn);
         top.add(clearBtn);
         top.add(randomBtn);
+        top.add(new JLabel("Fill:"));
+        top.add(sizeInput);
+        top.add(zoomOutBtn);
+        top.add(zoomInBtn);
         top.add(searchBtn);
         top.add(viewCodeBtn);
         top.add(insertBeginBtn);
@@ -649,6 +666,8 @@ class DSVisualizerFrame extends JFrame {
 
         JPanel bottom = new JPanel(new FlowLayout(FlowLayout.LEFT));
         bottom.add(statusLabel);
+    bottom.add(new JLabel("|"));
+    bottom.add(sizeLabel);
 
         panel.add(top, BorderLayout.NORTH);
         panel.add(bottom, BorderLayout.SOUTH);
@@ -767,6 +786,14 @@ class DSVisualizerFrame extends JFrame {
     private void setStatus(String message) {
         statusLabel.setText("Status: " + message);
     }
+
+    private void updateSizeDisplay(int elementCount) {
+        sizeLabel.setText("Size: " + elementCount);
+    }
+
+    private String formatZoom(double zoom) {
+        return String.format(Locale.US, "%.0f%%", zoom * 100.0);
+    }
 }
 
 /*
@@ -774,12 +801,21 @@ class DSVisualizerFrame extends JFrame {
  * ==============================
  */
 class DSVisualizerPanel extends JPanel {
+    private static final double MIN_ZOOM = 0.5;
+    private static final double MAX_ZOOM = 2.0;
+    private static final double ZOOM_STEP = 0.1;
+    private static final int ZOOM_ORIGIN_X = 40;
+    private static final int ZOOM_ORIGIN_Y = 95;
+
     private BaseDataStructure currentDS;
     private String currentType = "Stack";
     private final Map<String, Color> colorMap = new HashMap<>();
     private int animationPhase = 0;
     private final javax.swing.Timer animationTimer;
     private Consumer<NodeVisualInfo> nodeSelectionListener;
+    private Consumer<Integer> elementCountListener;
+    private Consumer<Double> zoomListener;
+    private double zoomFactor = 1.0;
 
     public DSVisualizerPanel() {
         setPreferredSize(new Dimension(1200, 600));
@@ -800,10 +836,29 @@ class DSVisualizerPanel extends JPanel {
                 handleNodeClick(e.getPoint());
             }
         });
+
+        addMouseWheelListener(e -> {
+            if (!e.isControlDown()) {
+                return;
+            }
+            double previousZoom = zoomFactor;
+            setZoom(zoomFactor - (e.getPreciseWheelRotation() * ZOOM_STEP));
+            if (Double.compare(previousZoom, zoomFactor) != 0) {
+                e.consume();
+            }
+        });
     }
 
     public void setNodeSelectionListener(Consumer<NodeVisualInfo> nodeSelectionListener) {
         this.nodeSelectionListener = nodeSelectionListener;
+    }
+
+    public void setElementCountListener(Consumer<Integer> elementCountListener) {
+        this.elementCountListener = elementCountListener;
+    }
+
+    public void setZoomListener(Consumer<Double> zoomListener) {
+        this.zoomListener = zoomListener;
     }
 
     public String getLastMessage() {
@@ -827,7 +882,8 @@ class DSVisualizerPanel extends JPanel {
         if (currentDS == null) {
             return;
         }
-        NodeVisualInfo info = currentDS.findNodeAt(point);
+        Point logicalPoint = toLogicalPoint(point);
+        NodeVisualInfo info = currentDS.findNodeAt(logicalPoint);
         if (info == null) {
             currentDS.clearSelection();
         } else {
@@ -837,6 +893,26 @@ class DSVisualizerPanel extends JPanel {
             nodeSelectionListener.accept(currentDS.getSelectedNodeInfo());
         }
         repaint();
+    }
+
+    public double zoomIn() {
+        return setZoom(zoomFactor + ZOOM_STEP);
+    }
+
+    public double zoomOut() {
+        return setZoom(zoomFactor - ZOOM_STEP);
+    }
+
+    private double setZoom(double zoom) {
+        double boundedZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom));
+        boolean changed = Double.compare(boundedZoom, zoomFactor) != 0;
+        if (changed) {
+            zoomFactor = boundedZoom;
+            updatePreferredSize();
+            repaint();
+            notifyZoomChanged();
+        }
+        return zoomFactor;
     }
 
     public void switchDataStructure(String type) {
@@ -864,6 +940,7 @@ class DSVisualizerPanel extends JPanel {
         if (nodeSelectionListener != null) {
             nodeSelectionListener.accept(null);
         }
+        notifyElementCountChanged();
         updatePreferredSize();
         repaint();
     }
@@ -1070,7 +1147,32 @@ class DSVisualizerPanel extends JPanel {
         if (nodeSelectionListener != null) {
             nodeSelectionListener.accept(currentDS == null ? null : currentDS.getSelectedNodeInfo());
         }
+        notifyElementCountChanged();
         repaint();
+    }
+
+    private void notifyElementCountChanged() {
+        if (elementCountListener != null) {
+            elementCountListener.accept(getElementCount());
+        }
+    }
+
+    private void notifyZoomChanged() {
+        if (zoomListener != null) {
+            zoomListener.accept(zoomFactor);
+        }
+    }
+
+    private Point toLogicalPoint(Point point) {
+        if (point.y < ZOOM_ORIGIN_Y) {
+            return point;
+        }
+
+        int logicalX = point.x < ZOOM_ORIGIN_X
+                ? point.x
+                : (int) Math.round(ZOOM_ORIGIN_X + ((point.x - ZOOM_ORIGIN_X) / zoomFactor));
+        int logicalY = (int) Math.round(ZOOM_ORIGIN_Y + ((point.y - ZOOM_ORIGIN_Y) / zoomFactor));
+        return new Point(logicalX, logicalY);
     }
 
     @Override
@@ -1091,14 +1193,25 @@ class DSVisualizerPanel extends JPanel {
 
         if (currentDS != null) {
             currentDS.beginRenderCycle();
-            currentDS.draw(g2, getWidth(), getHeight(), colorMap.get(currentType), animationPhase);
+            Graphics2D structureGraphics = (Graphics2D) g2.create();
+            structureGraphics.translate(ZOOM_ORIGIN_X, ZOOM_ORIGIN_Y);
+            structureGraphics.scale(zoomFactor, zoomFactor);
+            structureGraphics.translate(-ZOOM_ORIGIN_X, -ZOOM_ORIGIN_Y);
+
+            int logicalWidth = ZOOM_ORIGIN_X + (int) Math.round((getWidth() - ZOOM_ORIGIN_X) / zoomFactor);
+            int logicalHeight = ZOOM_ORIGIN_Y + (int) Math.round((getHeight() - ZOOM_ORIGIN_Y) / zoomFactor);
+            currentDS.draw(structureGraphics, logicalWidth, logicalHeight, colorMap.get(currentType), animationPhase);
+            structureGraphics.dispose();
         }
 
         g2.dispose();
     }
 
     private void updatePreferredSize() {
-        Dimension preferred = currentDS == null ? new Dimension(1200, 600) : currentDS.getPreferredVisualSize();
+        Dimension basePreferred = currentDS == null ? new Dimension(1200, 600) : currentDS.getPreferredVisualSize();
+        Dimension preferred = new Dimension(
+                ZOOM_ORIGIN_X + (int) Math.round((basePreferred.width - ZOOM_ORIGIN_X) * zoomFactor),
+                ZOOM_ORIGIN_Y + (int) Math.round((basePreferred.height - ZOOM_ORIGIN_Y) * zoomFactor));
         if (!preferred.equals(getPreferredSize())) {
             setPreferredSize(preferred);
             revalidate();
