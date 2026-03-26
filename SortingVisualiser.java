@@ -74,7 +74,7 @@ class AlgorithmDefinition {
 
 /* ---------------------------- UI Frame ---------------------------- */
 class VisualFrame extends JFrame {
-    private static final AlgorithmDefinition[] ALGORITHMS = createAlgorithms();
+    static final AlgorithmDefinition[] ALGORITHMS = createAlgorithms();
 
     private final VisualPanel visualPanel = new VisualPanel();
     private final JComboBox<AlgorithmDefinition> algoSelect = new JComboBox<>(ALGORITHMS);
@@ -120,7 +120,7 @@ class VisualFrame extends JFrame {
         visualPanel.clearArray();
         activeAlgorithm = getSelectedAlgorithm();
         pauseBtn.setEnabled(false);
-        analysisBtn.setEnabled(false);
+        analysisBtn.setEnabled(true);
 
         analysisBtn.addActionListener(e -> new SortAnalysisDialog(this, history).setVisible(true));
         compareBtn.addActionListener(e -> new CompareFrame(ALGORITHMS).setVisible(true));
@@ -1288,33 +1288,101 @@ class SortStats {
 class SortAnalysisDialog extends JDialog {
     public SortAnalysisDialog(JFrame owner, List<SortStats> history) {
         super(owner, "Sort Analysis", false);
-        setSize(850, 400);
+        setSize(900, 500);
         setLocationRelativeTo(owner);
         setLayout(new BorderLayout());
 
-        String[] columns = {"Algorithm", "Array Size", "Time (ms)", "Actual Memory Diff", "Space Complexity", "Swaps", "Array Writes", "Array Reads", "Comparisons"};
-        Object[][] data = new Object[history.size()][9];
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        topPanel.add(new JLabel("Array Size:"));
+        JSpinner sizeSpinner = new JSpinner(new SpinnerNumberModel(1000, 10, 1000000, 100));
+        topPanel.add(sizeSpinner);
         
-        for (int i = 0; i < history.size(); i++) {
-            SortStats s = history.get(i);
-            data[i][0] = s.algorithmName;
-            data[i][1] = s.arraySize;
-            data[i][2] = String.format("%.3f", s.timeNanos / 1_000_000.0);
-            data[i][3] = (s.memoryBytes > 0 ? s.memoryBytes + " bytes" : "< 1 KB");
-            data[i][4] = s.spaceComplexity;
-            data[i][5] = s.swaps;
-            data[i][6] = s.writes;
-            data[i][7] = s.reads;
-            data[i][8] = s.comparisons;
+        JButton autoRunBtn = new JButton("Run Auto Analysis");
+        JButton exportBtn = new JButton("Export to CSV");
+        topPanel.add(autoRunBtn);
+        topPanel.add(exportBtn);
+
+        String[] columns = {"Algorithm", "Array Size", "Time (ms)", "Actual Memory Diff", "Space Complexity", "Swaps", "Array Writes", "Array Reads", "Comparisons"};
+        javax.swing.table.DefaultTableModel model = new javax.swing.table.DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) { return false; }
+        };
+
+        for (SortStats s : history) {
+            model.addRow(new Object[]{
+                s.algorithmName, s.arraySize,
+                String.format(java.util.Locale.US, "%.3f", s.timeNanos / 1_000_000.0),
+                (s.memoryBytes > 0 ? s.memoryBytes + " bytes" : "< 1 KB"),
+                s.spaceComplexity, s.swaps, s.writes, s.reads, s.comparisons
+            });
         }
 
-        JTable table = new JTable(data, columns);
+        JTable table = new JTable(model);
         table.setFillsViewportHeight(true);
         table.setRowHeight(25);
         table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 14));
         table.setFont(new Font("Arial", Font.PLAIN, 14));
         
+        add(topPanel, BorderLayout.NORTH);
         add(new JScrollPane(table), BorderLayout.CENTER);
+
+        autoRunBtn.addActionListener(e -> {
+            int size = (Integer) sizeSpinner.getValue();
+            autoRunBtn.setEnabled(false);
+            Thread t = new Thread(() -> {
+                int[] arr = new int[size];
+                java.util.Random rnd = new java.util.Random();
+                for(int i = 0; i < size; i++) arr[i] = rnd.nextInt(400) + 5;
+                
+                for (AlgorithmDefinition alg : VisualFrame.ALGORITHMS) {
+                    int[] copy = arr.clone();
+                    SortMetrics metrics = new SortMetrics();
+                    System.gc(); // Hint GC
+                    long memBefore = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+                    long startNanos = System.nanoTime();
+                    alg.sort(copy, null, metrics);
+                    long algorithmTimeNanos = System.nanoTime() - startNanos;
+                    long memAfter = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+                    long memUsed = Math.max(0, memAfter - memBefore);
+                    
+                    SortStats stats = new SortStats(alg.getDisplayName(), algorithmTimeNanos, memUsed, alg.getSpaceComplexity(), metrics.swaps, metrics.arrayWrites, metrics.arrayReads, metrics.comparisons, size);
+                    
+                    SwingUtilities.invokeLater(() -> {
+                        history.add(stats);
+                        model.addRow(new Object[]{
+                            stats.algorithmName, stats.arraySize,
+                            String.format(java.util.Locale.US, "%.3f", stats.timeNanos / 1_000_000.0),
+                            (stats.memoryBytes > 0 ? stats.memoryBytes + " bytes" : "< 1 KB"),
+                            stats.spaceComplexity, stats.swaps, stats.writes, stats.reads, stats.comparisons
+                        });
+                    });
+                }
+                SwingUtilities.invokeLater(() -> autoRunBtn.setEnabled(true));
+            });
+            t.start();
+        });
+
+        exportBtn.addActionListener(e -> {
+            JFileChooser chooser = new JFileChooser();
+            chooser.setDialogTitle("Save Export as CSV");
+            if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+                java.io.File file = chooser.getSelectedFile();
+                if (!file.getName().toLowerCase().endsWith(".csv")) {
+                    file = new java.io.File(file.getParentFile(), file.getName() + ".csv");
+                }
+                try (java.io.PrintWriter writer = new java.io.PrintWriter(file)) {
+                    writer.println("Algorithm,Array Size,Time (ms),Actual Memory Diff,Space Complexity,Swaps,Array Writes,Array Reads,Comparisons");
+                    for (SortStats s : history) {
+                        writer.printf(java.util.Locale.US, "%s,%d,%.3f,%d,%s,%d,%d,%d,%d%n",
+                            s.algorithmName, s.arraySize, (s.timeNanos / 1_000_000.0),
+                            s.memoryBytes, s.spaceComplexity, s.swaps, s.writes, s.reads, s.comparisons);
+                    }
+                    JOptionPane.showMessageDialog(this, "Export complete!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "Error saving file: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
     }
 }
 
@@ -1514,7 +1582,7 @@ class TrackedArray {
     public int getVisualCompare(int i, int j, int codeLine) {
         metrics.comparisons++;
         metrics.arrayReads += 2;
-        ops.add(Operation.compare(i, j, codeLine));
+        if (ops != null) ops.add(Operation.compare(i, j, codeLine));
         return Integer.compare(a[i], a[j]);
     }
     
@@ -1526,7 +1594,7 @@ class TrackedArray {
     public void setVisual(int i, int val, int codeLine) {
         metrics.arrayWrites++;
         a[i] = val;
-        ops.add(Operation.overwrite(i, val, codeLine));
+        if (ops != null) ops.add(Operation.overwrite(i, val, codeLine));
     }
 
     // silent set for temp buffers
@@ -1542,17 +1610,17 @@ class TrackedArray {
         int tmp = a[i];
         a[i] = a[j];
         a[j] = tmp;
-        ops.add(Operation.swap(i, j, codeLine));
+        if (ops != null) ops.add(Operation.swap(i, j, codeLine));
     }
 
     public int length() { return a.length; }
 
     public void compareVisual(int i, int j, int codeLine) {
-        ops.add(Operation.compare(i, j, codeLine));
+        if (ops != null) ops.add(Operation.compare(i, j, codeLine));
     }
 
     public void markFinal(int i) {
-        ops.add(Operation.markFinal(i));
+        if (ops != null) ops.add(Operation.markFinal(i));
     }
 }
 

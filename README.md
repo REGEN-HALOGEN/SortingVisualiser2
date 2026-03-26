@@ -234,6 +234,11 @@ For detailed project documentation, refer to the included `ADS_Project_Documenta
 
 ## 📝 Changelog
 
+### v1.3.1 (March 2026)
+**Sorting Visualizer Enhancements:**
+- ⚙️ **Auto Analysis Module**: Added an automated benchmark runner to the Sort Analysis window. Users can input exceptionally large, custom array setups up to `1,000,000` elements—the runner rapidly benchmarks all algorithms accurately headlessly without stalling the main UI process or wasting graphics resources.
+- 💾 **CSV Result Export**: Extracted tracking data (Time, Memory Diff, Space Complexity, Array Reads, Array Writes, Swaps, Comparisons) can be directly exported out of the testing run as a `.csv` file perfectly formated for opening in Excel or Sheets software datasets.
+
 ### v1.3.0 (March 2026) - Shastra
 **Sorting Visualizer Enhancements:**
 - ✨ **Sort Analysis Window**: New metrics window detailing exact algorithm performance (Time, Memory Diff, Space Complexity, Array Reads, Array Writes, Swaps, Comparisons).
