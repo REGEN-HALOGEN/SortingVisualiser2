@@ -36,6 +36,10 @@ Visualize 8 popular sorting algorithms with step-by-step animations:
 - **View Code** panel for the selected sorting algorithm
 - Step playback architecture with line-aware operation replay
 
+- **Sort Analysis**: Dedicated statistics window tracking scientific metrics including Time, Memory Usage, Space Complexity, Swaps, Comparisons, Array Reads, and Array Writes.
+- **Algorithm Comparison**: Side-by-side race mode comparing two algorithms visually with individual metrics, adjustable array sizes, and toggleable number overlays.
+- **Research-grade Accuracy**: Employs a proxy wrapper pattern to capture true mathematical array operations outperforming pure visual updates.
+
 ### 🔗 Data Structure Visualizer
 Interactive visualization of 6 fundamental data structures:
 
@@ -230,6 +234,12 @@ For detailed project documentation, refer to the included `ADS_Project_Documenta
 
 ## 📝 Changelog
 
+### v1.3.0 (March 2026) - Shastra
+**Sorting Visualizer Enhancements:**
+- ✨ **Sort Analysis Window**: New metrics window detailing exact algorithm performance (Time, Memory Diff, Space Complexity, Array Reads, Array Writes, Swaps, Comparisons).
+- 🏁 **Algorithm Comparison Race**: Added a side-by-side window to race two algorithms simultaneously with toggleable numbers and adjustable array bounds.
+- 🔬 **Research-Grade Metric Proxy**: Reworked core sorting structures to use TrackedArray bindings ensuring mathematically rigorous telemetry for scientific datasets.
+
 ### v1.2.1 (March 2026)
 **Data Structure Visualizer Enhancements:**
 - ✅ **Live structure size**: current element count now updates automatically in the status row
@@ -275,3 +285,4 @@ For detailed project documentation, refer to the included `ADS_Project_Documenta
 - 💾 **Value Preservation**: Values are preserved when switching between data structures
 - 📏 **Custom Size Input**: Added size input field for Random Fill (1-50 elements)
 - 🏷️ **TAIL Label**: Added visible TAIL label to Circular LinkedList visualization
+

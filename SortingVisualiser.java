@@ -34,16 +34,18 @@ public class SortingVisualiser {
 
 @FunctionalInterface
 interface SortExecutor {
-    void sort(int[] array, List<Operation> ops);
+    void sort(int[] array, List<Operation> ops, SortMetrics metrics);
 }
 
 class AlgorithmDefinition {
     private final String displayName;
+    private final String spaceComplexity;
     private final SortExecutor executor;
     private final String[] codeLines;
 
-    public AlgorithmDefinition(String displayName, SortExecutor executor, String... codeLines) {
+    public AlgorithmDefinition(String displayName, String spaceComplexity, SortExecutor executor, String... codeLines) {
         this.displayName = displayName;
+        this.spaceComplexity = spaceComplexity;
         this.executor = executor;
         this.codeLines = codeLines;
     }
@@ -52,12 +54,16 @@ class AlgorithmDefinition {
         return displayName;
     }
 
+    public String getSpaceComplexity() {
+        return spaceComplexity;
+    }
+
     public String[] getCodeLines() {
         return codeLines;
     }
 
-    public void sort(int[] array, List<Operation> ops) {
-        executor.sort(array, ops);
+    public void sort(int[] array, List<Operation> ops, SortMetrics metrics) {
+        executor.sort(array, ops, metrics);
     }
 
     @Override
@@ -81,6 +87,8 @@ class VisualFrame extends JFrame {
     private final JButton resetBtn = new JButton("Reset");
     private final JButton clearBtn = new JButton("Clear");
     private final JButton viewCodeBtn = new JButton("View Code");
+    private final JButton analysisBtn = new JButton("Sort Analysis");
+    private final JButton compareBtn = new JButton("Compare");
     private final JLabel statusLabel = new JLabel("Status: Ready");
     private final JTextField sizeValueField = new JTextField("80");
     {
@@ -94,6 +102,8 @@ class VisualFrame extends JFrame {
     private OperationPlayer player;
     private CodeViewerDialog codeViewer;
     private AlgorithmDefinition activeAlgorithm;
+
+    private final List<SortStats> history = new ArrayList<>();
 
     public VisualFrame() {
         super("Sorting Visualizer");
@@ -110,6 +120,10 @@ class VisualFrame extends JFrame {
         visualPanel.clearArray();
         activeAlgorithm = getSelectedAlgorithm();
         pauseBtn.setEnabled(false);
+        analysisBtn.setEnabled(false);
+
+        analysisBtn.addActionListener(e -> new SortAnalysisDialog(this, history).setVisible(true));
+        compareBtn.addActionListener(e -> new CompareFrame(ALGORITHMS).setVisible(true));
 
         sizeValueField.addActionListener(e -> applyTypedSize());
         sizeValueField.addFocusListener(new java.awt.event.FocusAdapter() {
@@ -197,7 +211,7 @@ class VisualFrame extends JFrame {
 
     private static AlgorithmDefinition[] createAlgorithms() {
         return new AlgorithmDefinition[] {
-                new AlgorithmDefinition("Bubble Sort", SortingAlgorithms::bubbleSort,
+                new AlgorithmDefinition("Bubble Sort", "O(1)", SortingAlgorithms::bubbleSort,
                         "for (int i = 0; i < n - 1; i++) {",
                         "    boolean swapped = false;",
                         "    for (int j = 0; j < n - 1 - i; j++) {",
@@ -208,7 +222,7 @@ class VisualFrame extends JFrame {
                         "    }",
                         "    if (!swapped) break;",
                         "}"),
-                new AlgorithmDefinition("Selection Sort", SortingAlgorithms::selectionSort,
+                new AlgorithmDefinition("Selection Sort", "O(1)", SortingAlgorithms::selectionSort,
                         "for (int i = 0; i < n - 1; i++) {",
                         "    int minIdx = i;",
                         "    for (int j = i + 1; j < n; j++) {",
@@ -220,7 +234,7 @@ class VisualFrame extends JFrame {
                         "        swap(a, i, minIdx);",
                         "    }",
                         "}"),
-                new AlgorithmDefinition("Insertion Sort", SortingAlgorithms::insertionSort,
+                new AlgorithmDefinition("Insertion Sort", "O(1)", SortingAlgorithms::insertionSort,
                         "for (int i = 1; i < n; i++) {",
                         "    int key = a[i];",
                         "    int j = i - 1;",
@@ -230,7 +244,7 @@ class VisualFrame extends JFrame {
                         "    }",
                         "    a[j + 1] = key;",
                         "}"),
-                new AlgorithmDefinition("Merge Sort", SortingAlgorithms::mergeSort,
+                new AlgorithmDefinition("Merge Sort", "O(N)", SortingAlgorithms::mergeSort,
                         "void mergeSort(int left, int right) {",
                         "    if (left >= right) return;",
                         "    int mid = (left + right) / 2;",
@@ -242,7 +256,7 @@ class VisualFrame extends JFrame {
                         "    copyRemainingElements();",
                         "    writeMergedValuesBack();",
                         "}"),
-                new AlgorithmDefinition("Quick Sort", SortingAlgorithms::quickSort,
+                new AlgorithmDefinition("Quick Sort", "O(log N)", SortingAlgorithms::quickSort,
                         "void quickSort(int low, int high) {",
                         "    if (low < high) {",
                         "        int pivotIndex = partition(low, high);",
@@ -257,7 +271,7 @@ class VisualFrame extends JFrame {
                         "    }",
                         "}",
                         "swap(a, i, high);"),
-                new AlgorithmDefinition("Heap Sort", SortingAlgorithms::heapSort,
+                new AlgorithmDefinition("Heap Sort", "O(1)", SortingAlgorithms::heapSort,
                         "for (int i = n / 2 - 1; i >= 0; i--) {",
                         "    heapify(a, n, i);",
                         "}",
@@ -270,7 +284,7 @@ class VisualFrame extends JFrame {
                         "if (largest != i) {",
                         "    swap(a, i, largest);",
                         "}"),
-                new AlgorithmDefinition("Shell Sort", SortingAlgorithms::shellSort,
+                new AlgorithmDefinition("Shell Sort", "O(1)", SortingAlgorithms::shellSort,
                         "for (int gap = n / 2; gap > 0; gap /= 2) {",
                         "    for (int i = gap; i < n; i++) {",
                         "        int key = a[i];",
@@ -281,7 +295,7 @@ class VisualFrame extends JFrame {
                         "        a[j] = key;",
                         "    }",
                         "}"),
-                new AlgorithmDefinition("Radix Sort", SortingAlgorithms::radixSort,
+                new AlgorithmDefinition("Radix Sort", "O(N)", SortingAlgorithms::radixSort,
                         "int max = findMax(a);",
                         "for (int exp = 1; max / exp > 0; exp *= 10) {",
                         "    countDigitsForCurrentPlace(a, exp, count);",
@@ -315,6 +329,8 @@ class VisualFrame extends JFrame {
         JPanel bottom = new JPanel(new FlowLayout(FlowLayout.LEFT));
         bottom.add(statusLabel);
         bottom.add(numberToggle);
+        bottom.add(analysisBtn);
+        bottom.add(compareBtn);
 
         panel.add(top, BorderLayout.NORTH);
         panel.add(bottom, BorderLayout.SOUTH);
@@ -475,11 +491,20 @@ class VisualFrame extends JFrame {
             try {
                 List<Operation> ops = new ArrayList<>();
                 int[] workingCopy = arr.clone();
+                SortMetrics metrics = new SortMetrics();
+                
+                System.gc(); // Hint GC to run to get a better memory baseline 
+                long memBefore = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
                 long startNanos = System.nanoTime();
-                algorithm.sort(workingCopy, ops);
+                algorithm.sort(workingCopy, ops, metrics);
                 long algorithmTimeNanos = System.nanoTime() - startNanos;
+                long memAfter = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+                
+                long memUsed = Math.max(0, memAfter - memBefore);
+                SortStats stats = new SortStats(algorithm.getDisplayName(), algorithmTimeNanos, memUsed, algorithm.getSpaceComplexity(), metrics.swaps, metrics.arrayWrites, metrics.arrayReads, metrics.comparisons, arr.length);
 
                 SwingUtilities.invokeLater(() -> {
+                    history.add(stats);
                     statusLabel.setText("Status: Playing (" + algorithm.getDisplayName() + ")");
                     player = new OperationPlayer(ops,
                             visualPanel,
@@ -495,6 +520,7 @@ class VisualFrame extends JFrame {
                             },
                             () -> {
                                 setPlaybackControls(false);
+                                analysisBtn.setEnabled(true);
                                 player = null;
                             });
                     player.start();
@@ -983,8 +1009,9 @@ class OperationPlayer {
  * ----------------------------
  */
 class SortingAlgorithms {
-    public static void bubbleSort(int[] a, List<Operation> ops) {
-        int n = a.length;
+    public static void bubbleSort(int[] array, List<Operation> ops, SortMetrics metrics) {
+        TrackedArray a = new TrackedArray(array, ops, metrics);
+        int n = a.length();
         boolean swapped;
         final int compareLine = 4;
         final int swapLine = 5;
@@ -992,91 +1019,76 @@ class SortingAlgorithms {
         for (int i = 0; i < n - 1; i++) {
             swapped = false;
             for (int j = 0; j < n - 1 - i; j++) {
-                ops.add(Operation.compare(j, j + 1, compareLine));
-                if (a[j] > a[j + 1]) {
-                    ops.add(Operation.swap(j, j + 1, swapLine));
-                    int tmp = a[j];
-                    a[j] = a[j + 1];
-                    a[j + 1] = tmp;
+                if (a.getVisualCompare(j, j + 1, compareLine) > 0) {
+                    a.swap(j, j + 1, swapLine);
                     swapped = true;
                 }
             }
-            ops.add(Operation.markFinal(n - 1 - i));
+            a.markFinal(n - 1 - i);
             if (!swapped) {
-                for (int k = n - 2 - i; k >= 0; k--) {
-                    ops.add(Operation.markFinal(k));
-                }
+                for (int k = n - 2 - i; k >= 0; k--) a.markFinal(k);
                 return;
             }
         }
-        if (n == 1) {
-            ops.add(Operation.markFinal(0));
-        }
+        if (n == 1) a.markFinal(0);
     }
 
-    public static void selectionSort(int[] a, List<Operation> ops) {
-        int n = a.length;
+    public static void selectionSort(int[] array, List<Operation> ops, SortMetrics metrics) {
+        TrackedArray a = new TrackedArray(array, ops, metrics);
+        int n = a.length();
         final int compareLine = 4;
         final int swapLine = 9;
 
         for (int i = 0; i < n - 1; i++) {
             int minIdx = i;
             for (int j = i + 1; j < n; j++) {
-                ops.add(Operation.compare(minIdx, j, compareLine));
-                if (a[j] < a[minIdx])
+                if (a.getVisualCompare(j, minIdx, compareLine) < 0)
                     minIdx = j;
             }
             if (minIdx != i) {
-                ops.add(Operation.swap(i, minIdx, swapLine));
-                int tmp = a[i];
-                a[i] = a[minIdx];
-                a[minIdx] = tmp;
+                a.swap(i, minIdx, swapLine);
             }
-            ops.add(Operation.markFinal(i));
+            a.markFinal(i);
         }
-        if (n > 0)
-            ops.add(Operation.markFinal(n - 1));
+        if (n > 0) a.markFinal(n - 1);
     }
 
-    public static void insertionSort(int[] a, List<Operation> ops) {
-        int n = a.length;
+    public static void insertionSort(int[] array, List<Operation> ops, SortMetrics metrics) {
+        TrackedArray a = new TrackedArray(array, ops, metrics);
+        int n = a.length();
         final int compareLine = 4;
         final int shiftLine = 5;
         final int insertLine = 8;
 
         for (int i = 1; i < n; i++) {
-            int key = a[i];
+            int key = a.get(i);
             int j = i - 1;
             while (j >= 0) {
-                ops.add(Operation.compare(j, j + 1, compareLine));
-                if (a[j] > key) {
-                    ops.add(Operation.overwrite(j + 1, a[j], shiftLine));
-                    a[j + 1] = a[j];
+                a.compareVisual(j, j + 1, compareLine);
+                metrics.comparisons++;
+                if (a.get(j) > key) {
+                    a.setVisual(j + 1, a.get(j), shiftLine); // includes read and write implicitly visually
                     j--;
                 } else {
                     break;
                 }
             }
-            ops.add(Operation.overwrite(j + 1, key, insertLine));
-            a[j + 1] = key;
+            a.setVisual(j + 1, key, insertLine);
         }
-        for (int k = 0; k < n; k++)
-            ops.add(Operation.markFinal(k));
+        for (int k = 0; k < n; k++) a.markFinal(k);
     }
 
-    public static void mergeSort(int[] a, List<Operation> ops) {
-        mergeSortRec(a, 0, a.length - 1, ops);
-        for (int k = 0; k < a.length; k++)
-            ops.add(Operation.markFinal(k));
+    public static void mergeSort(int[] array, List<Operation> ops, SortMetrics metrics) {
+        TrackedArray a = new TrackedArray(array, ops, metrics);
+        mergeSortRec(a, 0, a.length() - 1);
+        for (int k = 0; k < a.length(); k++) a.markFinal(k);
     }
 
-    private static void mergeSortRec(int[] a, int l, int r, List<Operation> ops) {
-        if (l >= r)
-            return;
-
+    private static void mergeSortRec(TrackedArray a, int l, int r) {
+        if (l >= r) return;
         int m = (l + r) / 2;
-        mergeSortRec(a, l, m, ops);
-        mergeSortRec(a, m + 1, r, ops);
+        mergeSortRec(a, l, m);
+        mergeSortRec(a, m + 1, r);
 
         int[] tmp = new int[r - l + 1];
         int i = l, j = m + 1, k = 0;
@@ -1084,80 +1096,72 @@ class SortingAlgorithms {
         final int overwriteLine = 10;
 
         while (i <= m && j <= r) {
-            ops.add(Operation.compare(i, j, compareLine));
-            if (a[i] <= a[j]) {
-                tmp[k++] = a[i++];
+            a.compareVisual(i, j, compareLine);
+            a.metrics.comparisons++;
+            if (a.get(i) <= a.get(j)) {
+                tmp[k++] = a.get(i++);
+                a.metrics.arrayWrites++; // auxiliary array write
             } else {
-                tmp[k++] = a[j++];
+                tmp[k++] = a.get(j++);
+                a.metrics.arrayWrites++; // auxiliary array write
             }
         }
-        while (i <= m)
-            tmp[k++] = a[i++];
-        while (j <= r)
-            tmp[k++] = a[j++];
+        while (i <= m) { tmp[k++] = a.get(i++); a.metrics.arrayWrites++; }
+        while (j <= r) { tmp[k++] = a.get(j++); a.metrics.arrayWrites++; }
 
         for (int t = 0; t < tmp.length; t++) {
-            ops.add(Operation.overwrite(l + t, tmp[t], overwriteLine));
-            a[l + t] = tmp[t];
+            a.setVisual(l + t, tmp[t], overwriteLine); // arrayWrites implicitly in setVisual
         }
     }
 
-    public static void quickSort(int[] a, List<Operation> ops) {
-        quickSortRec(a, 0, a.length - 1, ops);
-        for (int k = 0; k < a.length; k++)
-            ops.add(Operation.markFinal(k));
+    public static void quickSort(int[] array, List<Operation> ops, SortMetrics metrics) {
+        TrackedArray a = new TrackedArray(array, ops, metrics);
+        quickSortRec(a, 0, a.length() - 1);
+        for (int k = 0; k < a.length(); k++) a.markFinal(k);
     }
 
-    private static void quickSortRec(int[] a, int low, int high, List<Operation> ops) {
+    private static void quickSortRec(TrackedArray a, int low, int high) {
         if (low < high) {
-            int p = partition(a, low, high, ops);
-            quickSortRec(a, low, p - 1, ops);
-            quickSortRec(a, p + 1, high, ops);
+            int p = partition(a, low, high);
+            quickSortRec(a, low, p - 1);
+            quickSortRec(a, p + 1, high);
         }
     }
 
-    private static int partition(int[] a, int low, int high, List<Operation> ops) {
-        int pivot = a[high];
+    private static int partition(TrackedArray a, int low, int high) {
+        int pivot = a.get(high);
         int i = low;
         final int compareLine = 10;
         final int swapLine = 11;
         final int finalSwapLine = 14;
 
         for (int j = low; j < high; j++) {
-            ops.add(Operation.compare(j, high, compareLine));
-            if (a[j] < pivot) {
-                ops.add(Operation.swap(i, j, swapLine));
-                int tmp = a[i];
-                a[i] = a[j];
-                a[j] = tmp;
+            a.compareVisual(j, high, compareLine);
+            a.metrics.comparisons++;
+            if (a.get(j) < pivot) {
+                a.swap(i, j, swapLine);
                 i++;
             }
         }
-        ops.add(Operation.swap(i, high, finalSwapLine));
-        int tmp = a[i];
-        a[i] = a[high];
-        a[high] = tmp;
+        a.swap(i, high, finalSwapLine);
         return i;
     }
 
-    public static void heapSort(int[] a, List<Operation> ops) {
-        int n = a.length;
+    public static void heapSort(int[] array, List<Operation> ops, SortMetrics metrics) {
+        TrackedArray a = new TrackedArray(array, ops, metrics);
+        int n = a.length();
         final int extractSwapLine = 5;
 
-        for (int i = n / 2 - 1; i >= 0; i--)
-            heapify(a, n, i, ops);
+        for (int i = n / 2 - 1; i >= 0; i--) heapify(a, n, i);
 
         for (int i = n - 1; i >= 0; i--) {
-            ops.add(Operation.swap(0, i, extractSwapLine));
-            int tmp = a[0];
-            a[0] = a[i];
-            a[i] = tmp;
-            heapify(a, i, 0, ops);
-            ops.add(Operation.markFinal(i));
+            a.swap(0, i, extractSwapLine);
+            heapify(a, i, 0);
+            a.markFinal(i);
         }
     }
 
-    private static void heapify(int[] a, int n, int i, List<Operation> ops) {
+    private static void heapify(TrackedArray a, int n, int i) {
         int largest = i;
         int l = 2 * i + 1;
         int r = 2 * i + 2;
@@ -1166,93 +1170,391 @@ class SortingAlgorithms {
         final int swapLine = 11;
 
         if (l < n) {
-            ops.add(Operation.compare(l, largest, leftCompareLine));
-            if (a[l] > a[largest])
-                largest = l;
+            a.compareVisual(l, largest, leftCompareLine);
+            a.metrics.comparisons++;
+            if (a.get(l) > a.get(largest)) largest = l;
         }
         if (r < n) {
-            ops.add(Operation.compare(r, largest, rightCompareLine));
-            if (a[r] > a[largest])
-                largest = r;
+            a.compareVisual(r, largest, rightCompareLine);
+            a.metrics.comparisons++;
+            if (a.get(r) > a.get(largest)) largest = r;
         }
         if (largest != i) {
-            ops.add(Operation.swap(i, largest, swapLine));
-            int tmp = a[i];
-            a[i] = a[largest];
-            a[largest] = tmp;
-            heapify(a, n, largest, ops);
+            a.swap(i, largest, swapLine);
+            heapify(a, n, largest);
         }
     }
 
-    public static void shellSort(int[] a, List<Operation> ops) {
-        int n = a.length;
+    public static void shellSort(int[] array, List<Operation> ops, SortMetrics metrics) {
+        TrackedArray a = new TrackedArray(array, ops, metrics);
+        int n = a.length();
         final int compareLine = 4;
         final int shiftLine = 5;
         final int insertLine = 8;
 
         for (int gap = n / 2; gap > 0; gap /= 2) {
             for (int i = gap; i < n; i++) {
-                int key = a[i];
+                int key = a.get(i);
                 int j = i;
                 while (j >= gap) {
-                    ops.add(Operation.compare(j - gap, j, compareLine));
-                    if (a[j - gap] > key) {
-                        ops.add(Operation.overwrite(j, a[j - gap], shiftLine));
-                        a[j] = a[j - gap];
+                    a.compareVisual(j - gap, j, compareLine);
+                    a.metrics.comparisons++;
+                    if (a.get(j - gap) > key) {
+                        a.setVisual(j, a.get(j - gap), shiftLine);
                         j -= gap;
                     } else {
                         break;
                     }
                 }
-                ops.add(Operation.overwrite(j, key, insertLine));
-                a[j] = key;
+                a.setVisual(j, key, insertLine);
             }
         }
-        for (int k = 0; k < n; k++)
-            ops.add(Operation.markFinal(k));
+        for (int k = 0; k < n; k++) a.markFinal(k);
     }
 
-    public static void radixSort(int[] a, List<Operation> ops) {
-        if (a.length == 0)
-            return;
+    public static void radixSort(int[] array, List<Operation> ops, SortMetrics metrics) {
+        TrackedArray a = new TrackedArray(array, ops, metrics);
+        if (a.length() == 0) return;
 
-        int max = a[0];
-        for (int val : a) {
-            if (val > max)
-                max = val;
+        int max = a.get(0);
+        for (int i = 1; i < a.length(); i++) {
+            a.metrics.comparisons++; // logical comparison
+            if (a.get(i) > max) max = a.get(i);
         }
 
         for (int exp = 1; max / exp > 0; exp *= 10) {
-            countingSortForRadix(a, exp, ops);
+            countingSortForRadix(a, exp);
         }
-        for (int k = 0; k < a.length; k++)
-            ops.add(Operation.markFinal(k));
+        for (int k = 0; k < a.length(); k++) a.markFinal(k);
     }
 
-    private static void countingSortForRadix(int[] a, int exp, List<Operation> ops) {
-        int n = a.length;
+    private static void countingSortForRadix(TrackedArray a, int exp) {
+        int n = a.length();
         int[] output = new int[n];
         int[] count = new int[10];
-        Arrays.fill(count, 0);
         final int overwriteLine = 7;
 
-        for (int i = 0; i < n; i++) {
-            count[(a[i] / exp) % 10]++;
-        }
-
-        for (int i = 1; i < 10; i++) {
-            count[i] += count[i - 1];
-        }
+        for (int i = 0; i < n; i++) count[(a.get(i) / exp) % 10]++;
+        for (int i = 1; i < 10; i++) count[i] += count[i - 1];
 
         for (int i = n - 1; i >= 0; i--) {
-            int digit = (a[i] / exp) % 10;
-            output[count[digit] - 1] = a[i];
+            int digit = (a.get(i) / exp) % 10;
+            output[count[digit] - 1] = a.get(i);
+            a.metrics.arrayWrites++; // auxiliary array write
             count[digit]--;
         }
 
         for (int i = 0; i < n; i++) {
-            ops.add(Operation.overwrite(i, output[i], overwriteLine));
-            a[i] = output[i];
+            a.setVisual(i, output[i], overwriteLine); // writes array implicitly
         }
     }
 }
+
+
+
+
+/* ---------------------------- Sort Stats & Analysis ---------------------------- */
+class SortMetrics {
+    public int comparisons = 0;
+    public int swaps = 0;
+    public int arrayReads = 0;
+    public int arrayWrites = 0;
+}
+
+class SortStats {
+    public final String algorithmName;
+    public final long timeNanos;
+    public final long memoryBytes;
+    public final String spaceComplexity;
+    public final int swaps;
+    public final int writes;
+    public final int reads;
+    public final int comparisons;
+    public final int arraySize;
+
+    public SortStats(String algorithmName, long timeNanos, long memoryBytes, String spaceComplexity, int swaps, int writes, int reads, int comparisons, int arraySize) {
+        this.algorithmName = algorithmName;
+        this.timeNanos = timeNanos;
+        this.memoryBytes = memoryBytes;
+        this.spaceComplexity = spaceComplexity;
+        this.swaps = swaps;
+        this.writes = writes;
+        this.reads = reads;
+        this.comparisons = comparisons;
+        this.arraySize = arraySize;
+    }
+}
+
+class SortAnalysisDialog extends JDialog {
+    public SortAnalysisDialog(JFrame owner, List<SortStats> history) {
+        super(owner, "Sort Analysis", false);
+        setSize(850, 400);
+        setLocationRelativeTo(owner);
+        setLayout(new BorderLayout());
+
+        String[] columns = {"Algorithm", "Array Size", "Time (ms)", "Actual Memory Diff", "Space Complexity", "Swaps", "Array Writes", "Array Reads", "Comparisons"};
+        Object[][] data = new Object[history.size()][9];
+        
+        for (int i = 0; i < history.size(); i++) {
+            SortStats s = history.get(i);
+            data[i][0] = s.algorithmName;
+            data[i][1] = s.arraySize;
+            data[i][2] = String.format("%.3f", s.timeNanos / 1_000_000.0);
+            data[i][3] = (s.memoryBytes > 0 ? s.memoryBytes + " bytes" : "< 1 KB");
+            data[i][4] = s.spaceComplexity;
+            data[i][5] = s.swaps;
+            data[i][6] = s.writes;
+            data[i][7] = s.reads;
+            data[i][8] = s.comparisons;
+        }
+
+        JTable table = new JTable(data, columns);
+        table.setFillsViewportHeight(true);
+        table.setRowHeight(25);
+        table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 14));
+        table.setFont(new Font("Arial", Font.PLAIN, 14));
+        
+        add(new JScrollPane(table), BorderLayout.CENTER);
+    }
+}
+
+/* ---------------------------- Comparison Frame ---------------------------- */
+class CompareFrame extends JFrame {
+    private final VisualPanel panel1 = new VisualPanel();
+    private final VisualPanel panel2 = new VisualPanel();
+    private final JComboBox<AlgorithmDefinition> algoSelect1;
+    private final JComboBox<AlgorithmDefinition> algoSelect2;
+    private final JSpinner sizeSpinner = new JSpinner(new SpinnerNumberModel(150, 10, 800, 10));
+    private final JButton startRaceBtn = new JButton("Start Race");
+    private final JCheckBox numberToggle = new JCheckBox("Show Numbers", true);
+    private final JLabel statusLabel = new JLabel("Status: Ready to Race");
+    
+    private final JLabel statsLabel1 = new JLabel("<html><br><br><br><br></html>", SwingConstants.CENTER);
+    private final JLabel statsLabel2 = new JLabel("<html><br><br><br><br></html>", SwingConstants.CENTER);
+    
+    private OperationPlayer player1;
+    private OperationPlayer player2;
+
+    public CompareFrame(AlgorithmDefinition[] algorithms) {
+        super("Algorithm Comparison");
+        setSize(1200, 650);
+        setLocationRelativeTo(null);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setLayout(new BorderLayout());
+
+        algoSelect1 = new JComboBox<>(algorithms);
+        algoSelect2 = new JComboBox<>(algorithms);
+        if (algorithms.length > 1) {
+            algoSelect2.setSelectedIndex(1);
+        }
+        
+        statsLabel1.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
+        statsLabel2.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
+        statsLabel1.setFont(new Font("Arial", Font.PLAIN, 13));
+        statsLabel2.setFont(new Font("Arial", Font.PLAIN, 13));
+
+        JPanel topPanel = new JPanel(new FlowLayout());
+        topPanel.add(new JLabel("Left Algorithm:"));
+        topPanel.add(algoSelect1);
+        topPanel.add(Box.createHorizontalStrut(30));
+        topPanel.add(new JLabel("Size:"));
+        topPanel.add(sizeSpinner);
+        topPanel.add(Box.createHorizontalStrut(30));
+        topPanel.add(startRaceBtn);
+        topPanel.add(Box.createHorizontalStrut(50));
+        topPanel.add(new JLabel("Right Algorithm:"));
+        topPanel.add(algoSelect2);
+        topPanel.add(Box.createHorizontalStrut(30));
+        topPanel.add(numberToggle);
+
+        JPanel centerPanel = new JPanel(new GridLayout(1, 2, 10, 0));
+        centerPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
+        JPanel leftContainer = new JPanel(new BorderLayout());
+        leftContainer.add(new JLabel("Player 1", SwingConstants.CENTER), BorderLayout.NORTH);
+        leftContainer.add(panel1, BorderLayout.CENTER);
+        leftContainer.add(statsLabel1, BorderLayout.SOUTH);
+        
+        JPanel rightContainer = new JPanel(new BorderLayout());
+        rightContainer.add(new JLabel("Player 2", SwingConstants.CENTER), BorderLayout.NORTH);
+        rightContainer.add(panel2, BorderLayout.CENTER);
+        rightContainer.add(statsLabel2, BorderLayout.SOUTH);
+        
+        centerPanel.add(leftContainer);
+        centerPanel.add(rightContainer);
+
+        add(topPanel, BorderLayout.NORTH);
+        add(centerPanel, BorderLayout.CENTER);
+        add(statusLabel, BorderLayout.SOUTH);
+
+        numberToggle.addActionListener(e -> {
+            boolean show = numberToggle.isSelected();
+            panel1.setShowNumbers(show);
+            panel2.setShowNumbers(show);
+        });
+
+        startRaceBtn.addActionListener(e -> runComparison());
+    }
+
+    private void runComparison() {
+        if ((player1 != null && player1.isPlaying()) || (player2 != null && player2.isPlaying())) {
+            return;
+        }
+
+        AlgorithmDefinition alg1 = (AlgorithmDefinition) algoSelect1.getSelectedItem();
+        AlgorithmDefinition alg2 = (AlgorithmDefinition) algoSelect2.getSelectedItem();
+
+        int size = (Integer) sizeSpinner.getValue();
+        panel1.generateRandomArray(size);
+        panel2.setCustomArray(panel1.getArrayCopy()); // Make them identical
+
+        panel1.resetHighlights();
+        panel2.resetHighlights();
+
+        startRaceBtn.setEnabled(false);
+        algoSelect1.setEnabled(false);
+        algoSelect2.setEnabled(false);
+        sizeSpinner.setEnabled(false);
+        statusLabel.setText("Status: Racing " + alg1.getDisplayName() + " vs " + alg2.getDisplayName() + "...");
+        statsLabel1.setText("<html><i>Calculations running...</i><br><br><br><br></html>");
+        statsLabel2.setText("<html><i>Calculations running...</i><br><br><br><br></html>");
+
+        new Thread(() -> {
+            try {
+                int[] arr1 = panel1.getArrayCopy();
+                List<Operation> ops1 = new ArrayList<>();
+                System.gc(); // Hint GC to run to get a better memory baseline 
+                long memBefore1 = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+                long t1 = System.nanoTime();
+                SortMetrics m1 = new SortMetrics();
+                alg1.sort(arr1, ops1, m1);
+                long time1 = System.nanoTime() - t1;
+                long memAfter1 = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+                long memUsed1 = Math.max(0, memAfter1 - memBefore1);
+                
+                final int swaps1 = m1.swaps;
+                final int writes1 = m1.arrayWrites;
+                final int reads1 = m1.arrayReads;
+                final int comps1 = m1.comparisons;
+
+                int[] arr2 = panel2.getArrayCopy();
+                List<Operation> ops2 = new ArrayList<>();
+                System.gc(); // Hint GC
+                long memBefore2 = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+                long t2 = System.nanoTime();
+                SortMetrics m2 = new SortMetrics();
+                alg2.sort(arr2, ops2, m2);
+                long time2 = System.nanoTime() - t2;
+                long memAfter2 = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+                long memUsed2 = Math.max(0, memAfter2 - memBefore2);
+                
+                final int swaps2 = m2.swaps;
+                final int writes2 = m2.arrayWrites;
+                final int reads2 = m2.arrayReads;
+                final int comps2 = m2.comparisons;
+
+                SwingUtilities.invokeLater(() -> {
+                    statsLabel1.setText("<html><i>Visualizing...</i><br><br><br><br></html>");
+                    statsLabel2.setText("<html><i>Visualizing...</i><br><br><br><br></html>");
+
+                    AtomicBoolean p1Done = new AtomicBoolean(false);
+                    AtomicBoolean p2Done = new AtomicBoolean(false);
+
+                    Runnable checkDone = () -> {
+                        if (p1Done.get() && p2Done.get()) {
+                            startRaceBtn.setEnabled(true);
+                            algoSelect1.setEnabled(true);
+                            algoSelect2.setEnabled(true);
+                            sizeSpinner.setEnabled(true);
+                            statusLabel.setText("Status: Race Finished!");
+                        }
+                    };
+
+                    player1 = new OperationPlayer(ops1, panel1, 5, new JLabel(), time1, null, () -> {
+                        p1Done.set(true);
+                        statsLabel1.setText(String.format("<html><b>Algorithm:</b> %s<br><b>Time:</b> %.3f ms<br><b>Memory Diff:</b> %s<br><b>Space Complexity:</b> %s<br><b>Swaps:</b> %d &nbsp;&nbsp; <b>Comparisons:</b> %d<br><b>Array Reads:</b> %d &nbsp;&nbsp; <b>Array Writes:</b> %d</html>",
+                                alg1.getDisplayName(), time1 / 1_000_000.0, (memUsed1 > 0 ? memUsed1 + " bytes" : "< 1 KB"), alg1.getSpaceComplexity(), swaps1, comps1, reads1, writes1));
+                        checkDone.run();
+                    });
+                    
+                    player2 = new OperationPlayer(ops2, panel2, 5, new JLabel(), time2, null, () -> {
+                        p2Done.set(true);
+                        statsLabel2.setText(String.format("<html><b>Algorithm:</b> %s<br><b>Time:</b> %.3f ms<br><b>Memory Diff:</b> %s<br><b>Space Complexity:</b> %s<br><b>Swaps:</b> %d &nbsp;&nbsp; <b>Comparisons:</b> %d<br><b>Array Reads:</b> %d &nbsp;&nbsp; <b>Array Writes:</b> %d</html>",
+                                alg2.getDisplayName(), time2 / 1_000_000.0, (memUsed2 > 0 ? memUsed2 + " bytes" : "< 1 KB"), alg2.getSpaceComplexity(), swaps2, comps2, reads2, writes2));
+                        checkDone.run();
+                    });
+
+                    player1.start();
+                    player2.start();
+                });
+            } catch (Exception ex) {
+                SwingUtilities.invokeLater(() -> {
+                    startRaceBtn.setEnabled(true);
+                    algoSelect1.setEnabled(true);
+                    algoSelect2.setEnabled(true);
+                    sizeSpinner.setEnabled(true);
+                    statusLabel.setText("Status: Error during comparison.");
+                });
+            }
+        }, "Compare-Thread").start();
+    }
+}
+
+class TrackedArray {
+    private final int[] a;
+    public final SortMetrics metrics;
+    private final List<Operation> ops;
+
+    public TrackedArray(int[] a, List<Operation> ops, SortMetrics metrics) {
+        this.a = a;
+        this.ops = ops;
+        this.metrics = metrics;
+    }
+
+    public int getVisualCompare(int i, int j, int codeLine) {
+        metrics.comparisons++;
+        metrics.arrayReads += 2;
+        ops.add(Operation.compare(i, j, codeLine));
+        return Integer.compare(a[i], a[j]);
+    }
+    
+    public int get(int i) {
+        metrics.arrayReads++;
+        return a[i];
+    }
+
+    public void setVisual(int i, int val, int codeLine) {
+        metrics.arrayWrites++;
+        a[i] = val;
+        ops.add(Operation.overwrite(i, val, codeLine));
+    }
+
+    // silent set for temp buffers
+    public void set(int i, int val) {
+        metrics.arrayWrites++;
+        a[i] = val;
+    }
+
+    public void swap(int i, int j, int codeLine) {
+        metrics.swaps++;
+        metrics.arrayReads += 2;
+        metrics.arrayWrites += 2;
+        int tmp = a[i];
+        a[i] = a[j];
+        a[j] = tmp;
+        ops.add(Operation.swap(i, j, codeLine));
+    }
+
+    public int length() { return a.length; }
+
+    public void compareVisual(int i, int j, int codeLine) {
+        ops.add(Operation.compare(i, j, codeLine));
+    }
+
+    public void markFinal(int i) {
+        ops.add(Operation.markFinal(i));
+    }
+}
+
+
+
