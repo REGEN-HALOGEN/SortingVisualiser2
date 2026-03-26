@@ -234,6 +234,11 @@ For detailed project documentation, refer to the included `ADS_Project_Documenta
 
 ## 📝 Changelog
 
+### v1.3.2 (March 2026)
+**Sorting Visualizer Enhancements:**
+- 🚀 **Parallel Auto Analysis**: Algorithms automatically harness multi-core CPU threading to crunch benchmarks concurrently, functionally eliminating previous single-thread UI lag and dropping latency severely on million-value workloads.
+- 🕰️ **Time Complexity Logging**: Introduced structural Time Complexity notation across stats charts alongside runtime bytes/memory outputs.
+
 ### v1.3.1 (March 2026)
 **Sorting Visualizer Enhancements:**
 - ⚙️ **Auto Analysis Module**: Added an automated benchmark runner to the Sort Analysis window. Users can input exceptionally large, custom array setups up to `1,000,000` elements—the runner rapidly benchmarks all algorithms accurately headlessly without stalling the main UI process or wasting graphics resources.
