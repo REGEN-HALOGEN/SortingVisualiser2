@@ -39,12 +39,14 @@ interface SortExecutor {
 
 class AlgorithmDefinition {
     private final String displayName;
+    private final String timeComplexity;
     private final String spaceComplexity;
     private final SortExecutor executor;
     private final String[] codeLines;
 
-    public AlgorithmDefinition(String displayName, String spaceComplexity, SortExecutor executor, String... codeLines) {
+    public AlgorithmDefinition(String displayName, String timeComplexity, String spaceComplexity, SortExecutor executor, String... codeLines) {
         this.displayName = displayName;
+        this.timeComplexity = timeComplexity;
         this.spaceComplexity = spaceComplexity;
         this.executor = executor;
         this.codeLines = codeLines;
@@ -52,6 +54,10 @@ class AlgorithmDefinition {
 
     public String getDisplayName() {
         return displayName;
+    }
+
+    public String getTimeComplexity() {
+        return timeComplexity;
     }
 
     public String getSpaceComplexity() {
@@ -211,7 +217,7 @@ class VisualFrame extends JFrame {
 
     private static AlgorithmDefinition[] createAlgorithms() {
         return new AlgorithmDefinition[] {
-                new AlgorithmDefinition("Bubble Sort", "O(1)", SortingAlgorithms::bubbleSort,
+                new AlgorithmDefinition("Bubble Sort", "O(N²)", "O(1)", SortingAlgorithms::bubbleSort,
                         "for (int i = 0; i < n - 1; i++) {",
                         "    boolean swapped = false;",
                         "    for (int j = 0; j < n - 1 - i; j++) {",
@@ -222,7 +228,7 @@ class VisualFrame extends JFrame {
                         "    }",
                         "    if (!swapped) break;",
                         "}"),
-                new AlgorithmDefinition("Selection Sort", "O(1)", SortingAlgorithms::selectionSort,
+                new AlgorithmDefinition("Selection Sort", "O(N²)", "O(1)", SortingAlgorithms::selectionSort,
                         "for (int i = 0; i < n - 1; i++) {",
                         "    int minIdx = i;",
                         "    for (int j = i + 1; j < n; j++) {",
@@ -234,7 +240,7 @@ class VisualFrame extends JFrame {
                         "        swap(a, i, minIdx);",
                         "    }",
                         "}"),
-                new AlgorithmDefinition("Insertion Sort", "O(1)", SortingAlgorithms::insertionSort,
+                new AlgorithmDefinition("Insertion Sort", "O(N²)", "O(1)", SortingAlgorithms::insertionSort,
                         "for (int i = 1; i < n; i++) {",
                         "    int key = a[i];",
                         "    int j = i - 1;",
@@ -244,7 +250,7 @@ class VisualFrame extends JFrame {
                         "    }",
                         "    a[j + 1] = key;",
                         "}"),
-                new AlgorithmDefinition("Merge Sort", "O(N)", SortingAlgorithms::mergeSort,
+                new AlgorithmDefinition("Merge Sort", "O(N log N)", "O(N)", SortingAlgorithms::mergeSort,
                         "void mergeSort(int left, int right) {",
                         "    if (left >= right) return;",
                         "    int mid = (left + right) / 2;",
@@ -256,7 +262,7 @@ class VisualFrame extends JFrame {
                         "    copyRemainingElements();",
                         "    writeMergedValuesBack();",
                         "}"),
-                new AlgorithmDefinition("Quick Sort", "O(log N)", SortingAlgorithms::quickSort,
+                new AlgorithmDefinition("Quick Sort", "O(N log N)", "O(log N)", SortingAlgorithms::quickSort,
                         "void quickSort(int low, int high) {",
                         "    if (low < high) {",
                         "        int pivotIndex = partition(low, high);",
@@ -271,7 +277,7 @@ class VisualFrame extends JFrame {
                         "    }",
                         "}",
                         "swap(a, i, high);"),
-                new AlgorithmDefinition("Heap Sort", "O(1)", SortingAlgorithms::heapSort,
+                new AlgorithmDefinition("Heap Sort", "O(N log N)", "O(1)", SortingAlgorithms::heapSort,
                         "for (int i = n / 2 - 1; i >= 0; i--) {",
                         "    heapify(a, n, i);",
                         "}",
@@ -284,7 +290,7 @@ class VisualFrame extends JFrame {
                         "if (largest != i) {",
                         "    swap(a, i, largest);",
                         "}"),
-                new AlgorithmDefinition("Shell Sort", "O(1)", SortingAlgorithms::shellSort,
+                new AlgorithmDefinition("Shell Sort", "O(N log² N)", "O(1)", SortingAlgorithms::shellSort,
                         "for (int gap = n / 2; gap > 0; gap /= 2) {",
                         "    for (int i = gap; i < n; i++) {",
                         "        int key = a[i];",
@@ -295,7 +301,7 @@ class VisualFrame extends JFrame {
                         "        a[j] = key;",
                         "    }",
                         "}"),
-                new AlgorithmDefinition("Radix Sort", "O(N)", SortingAlgorithms::radixSort,
+                new AlgorithmDefinition("Radix Sort", "O(NK)", "O(N)", SortingAlgorithms::radixSort,
                         "int max = findMax(a);",
                         "for (int exp = 1; max / exp > 0; exp *= 10) {",
                         "    countDigitsForCurrentPlace(a, exp, count);",
@@ -501,7 +507,7 @@ class VisualFrame extends JFrame {
                 long memAfter = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
                 
                 long memUsed = Math.max(0, memAfter - memBefore);
-                SortStats stats = new SortStats(algorithm.getDisplayName(), algorithmTimeNanos, memUsed, algorithm.getSpaceComplexity(), metrics.swaps, metrics.arrayWrites, metrics.arrayReads, metrics.comparisons, arr.length);
+                SortStats stats = new SortStats(algorithm.getDisplayName(), algorithmTimeNanos, memUsed, algorithm.getTimeComplexity(), algorithm.getSpaceComplexity(), metrics.swaps, metrics.arrayWrites, metrics.arrayReads, metrics.comparisons, arr.length);
 
                 SwingUtilities.invokeLater(() -> {
                     history.add(stats);
@@ -1255,27 +1261,29 @@ class SortingAlgorithms {
 
 /* ---------------------------- Sort Stats & Analysis ---------------------------- */
 class SortMetrics {
-    public int comparisons = 0;
-    public int swaps = 0;
-    public int arrayReads = 0;
-    public int arrayWrites = 0;
+    public long comparisons = 0;
+    public long swaps = 0;
+    public long arrayReads = 0;
+    public long arrayWrites = 0;
 }
 
 class SortStats {
     public final String algorithmName;
     public final long timeNanos;
     public final long memoryBytes;
+    public final String timeComplexity;
     public final String spaceComplexity;
-    public final int swaps;
-    public final int writes;
-    public final int reads;
-    public final int comparisons;
+    public final long swaps;
+    public final long writes;
+    public final long reads;
+    public final long comparisons;
     public final int arraySize;
 
-    public SortStats(String algorithmName, long timeNanos, long memoryBytes, String spaceComplexity, int swaps, int writes, int reads, int comparisons, int arraySize) {
+    public SortStats(String algorithmName, long timeNanos, long memoryBytes, String timeComplexity, String spaceComplexity, long swaps, long writes, long reads, long comparisons, int arraySize) {
         this.algorithmName = algorithmName;
         this.timeNanos = timeNanos;
         this.memoryBytes = memoryBytes;
+        this.timeComplexity = timeComplexity;
         this.spaceComplexity = spaceComplexity;
         this.swaps = swaps;
         this.writes = writes;
@@ -1301,8 +1309,15 @@ class SortAnalysisDialog extends JDialog {
         JButton exportBtn = new JButton("Export to CSV");
         topPanel.add(autoRunBtn);
         topPanel.add(exportBtn);
+        
+        JProgressBar progressBar = new JProgressBar(0, 100);
+        progressBar.setStringPainted(true);
+        progressBar.setVisible(false);
+        JLabel statusLabel = new JLabel("");
+        topPanel.add(progressBar);
+        topPanel.add(statusLabel);
 
-        String[] columns = {"Algorithm", "Array Size", "Time (ms)", "Actual Memory Diff", "Space Complexity", "Swaps", "Array Writes", "Array Reads", "Comparisons"};
+        String[] columns = {"Algorithm", "Array Size", "Time (ms)", "Actual Memory Diff", "Time Complexity", "Space Complexity", "Swaps", "Array Writes", "Array Reads", "Comparisons"};
         javax.swing.table.DefaultTableModel model = new javax.swing.table.DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) { return false; }
@@ -1313,7 +1328,7 @@ class SortAnalysisDialog extends JDialog {
                 s.algorithmName, s.arraySize,
                 String.format(java.util.Locale.US, "%.3f", s.timeNanos / 1_000_000.0),
                 (s.memoryBytes > 0 ? s.memoryBytes + " bytes" : "< 1 KB"),
-                s.spaceComplexity, s.swaps, s.writes, s.reads, s.comparisons
+                s.timeComplexity, s.spaceComplexity, s.swaps, s.writes, s.reads, s.comparisons
             });
         }
 
@@ -1329,35 +1344,74 @@ class SortAnalysisDialog extends JDialog {
         autoRunBtn.addActionListener(e -> {
             int size = (Integer) sizeSpinner.getValue();
             autoRunBtn.setEnabled(false);
+            
+            progressBar.setValue(0);
+            progressBar.setVisible(true);
+            statusLabel.setText("Preparing...");
+
+            long startTimeMillis = System.currentTimeMillis();
+            int totalAlgorithms = VisualFrame.ALGORITHMS.length;
+            int[] completed = {0};
+
+            int cores = Runtime.getRuntime().availableProcessors();
+
+            javax.swing.Timer timer = new javax.swing.Timer(1000, evt -> {
+                long elapsedSeconds = (System.currentTimeMillis() - startTimeMillis) / 1000;
+                int c = completed[0];
+                if (c == 0) {
+                    statusLabel.setText(String.format("Running on %d CPU cores... (Elapsed: %ds)", cores, elapsedSeconds));
+                } else {
+                    long elapsedMillis = System.currentTimeMillis() - startTimeMillis;
+                    long etaMillis = (long) ((elapsedMillis / (double) c) * (totalAlgorithms - c));
+                    statusLabel.setText(String.format("Running... %d/%d (Elapsed: %ds | ETA: %ds)", c, totalAlgorithms, elapsedSeconds, etaMillis / 1000));
+                }
+            });
+            timer.start();
+
             Thread t = new Thread(() -> {
                 int[] arr = new int[size];
                 java.util.Random rnd = new java.util.Random();
                 for(int i = 0; i < size; i++) arr[i] = rnd.nextInt(400) + 5;
                 
+                java.util.concurrent.ExecutorService executor = java.util.concurrent.Executors.newFixedThreadPool(cores);
+
                 for (AlgorithmDefinition alg : VisualFrame.ALGORITHMS) {
-                    int[] copy = arr.clone();
-                    SortMetrics metrics = new SortMetrics();
-                    System.gc(); // Hint GC
-                    long memBefore = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-                    long startNanos = System.nanoTime();
-                    alg.sort(copy, null, metrics);
-                    long algorithmTimeNanos = System.nanoTime() - startNanos;
-                    long memAfter = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-                    long memUsed = Math.max(0, memAfter - memBefore);
-                    
-                    SortStats stats = new SortStats(alg.getDisplayName(), algorithmTimeNanos, memUsed, alg.getSpaceComplexity(), metrics.swaps, metrics.arrayWrites, metrics.arrayReads, metrics.comparisons, size);
-                    
-                    SwingUtilities.invokeLater(() -> {
-                        history.add(stats);
-                        model.addRow(new Object[]{
-                            stats.algorithmName, stats.arraySize,
-                            String.format(java.util.Locale.US, "%.3f", stats.timeNanos / 1_000_000.0),
-                            (stats.memoryBytes > 0 ? stats.memoryBytes + " bytes" : "< 1 KB"),
-                            stats.spaceComplexity, stats.swaps, stats.writes, stats.reads, stats.comparisons
+                    executor.submit(() -> {
+                        int[] copy = arr.clone();
+                        SortMetrics metrics = new SortMetrics();
+                        System.gc(); // Hint GC
+                        long memBefore = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+                        long startNanos = System.nanoTime();
+                        alg.sort(copy, null, metrics);
+                        long algorithmTimeNanos = System.nanoTime() - startNanos;
+                        long memAfter = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+                        long memUsed = Math.max(0, memAfter - memBefore);
+                        
+                        SortStats stats = new SortStats(alg.getDisplayName(), algorithmTimeNanos, memUsed, alg.getTimeComplexity(), alg.getSpaceComplexity(), metrics.swaps, metrics.arrayWrites, metrics.arrayReads, metrics.comparisons, size);
+                        
+                        SwingUtilities.invokeLater(() -> {
+                            completed[0]++;
+                            int percent = (int) ((completed[0] * 100.0) / totalAlgorithms);
+
+                            history.add(stats);
+                            model.addRow(new Object[]{
+                                stats.algorithmName, stats.arraySize,
+                                String.format(java.util.Locale.US, "%.3f", stats.timeNanos / 1_000_000.0),
+                                (stats.memoryBytes > 0 ? stats.memoryBytes + " bytes" : "< 1 KB"),
+                                stats.timeComplexity, stats.spaceComplexity, stats.swaps, stats.writes, stats.reads, stats.comparisons
+                            });
+                            progressBar.setValue(percent);
+
+                            if (completed[0] == totalAlgorithms) {
+                                timer.stop();
+                                autoRunBtn.setEnabled(true);
+                                progressBar.setVisible(false);
+                                statusLabel.setText("Analysis complete.");
+                            }
                         });
                     });
                 }
-                SwingUtilities.invokeLater(() -> autoRunBtn.setEnabled(true));
+                executor.shutdown();
             });
             t.start();
         });
@@ -1371,11 +1425,11 @@ class SortAnalysisDialog extends JDialog {
                     file = new java.io.File(file.getParentFile(), file.getName() + ".csv");
                 }
                 try (java.io.PrintWriter writer = new java.io.PrintWriter(file)) {
-                    writer.println("Algorithm,Array Size,Time (ms),Actual Memory Diff,Space Complexity,Swaps,Array Writes,Array Reads,Comparisons");
+                    writer.println("Algorithm,Array Size,Time (ms),Actual Memory Diff,Time Complexity,Space Complexity,Swaps,Array Writes,Array Reads,Comparisons");
                     for (SortStats s : history) {
-                        writer.printf(java.util.Locale.US, "%s,%d,%.3f,%d,%s,%d,%d,%d,%d%n",
+                        writer.printf(java.util.Locale.US, "%s,%d,%.3f,%d,%s,%s,%d,%d,%d,%d%n",
                             s.algorithmName, s.arraySize, (s.timeNanos / 1_000_000.0),
-                            s.memoryBytes, s.spaceComplexity, s.swaps, s.writes, s.reads, s.comparisons);
+                            s.memoryBytes, s.timeComplexity, s.spaceComplexity, s.swaps, s.writes, s.reads, s.comparisons);
                     }
                     JOptionPane.showMessageDialog(this, "Export complete!", "Success", JOptionPane.INFORMATION_MESSAGE);
                 } catch (Exception ex) {
@@ -1500,10 +1554,10 @@ class CompareFrame extends JFrame {
                 long memAfter1 = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
                 long memUsed1 = Math.max(0, memAfter1 - memBefore1);
                 
-                final int swaps1 = m1.swaps;
-                final int writes1 = m1.arrayWrites;
-                final int reads1 = m1.arrayReads;
-                final int comps1 = m1.comparisons;
+                final long swaps1 = m1.swaps;
+                final long writes1 = m1.arrayWrites;
+                final long reads1 = m1.arrayReads;
+                final long comps1 = m1.comparisons;
 
                 int[] arr2 = panel2.getArrayCopy();
                 List<Operation> ops2 = new ArrayList<>();
@@ -1516,10 +1570,10 @@ class CompareFrame extends JFrame {
                 long memAfter2 = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
                 long memUsed2 = Math.max(0, memAfter2 - memBefore2);
                 
-                final int swaps2 = m2.swaps;
-                final int writes2 = m2.arrayWrites;
-                final int reads2 = m2.arrayReads;
-                final int comps2 = m2.comparisons;
+                final long swaps2 = m2.swaps;
+                final long writes2 = m2.arrayWrites;
+                final long reads2 = m2.arrayReads;
+                final long comps2 = m2.comparisons;
 
                 SwingUtilities.invokeLater(() -> {
                     statsLabel1.setText("<html><i>Visualizing...</i><br><br><br><br></html>");
@@ -1540,15 +1594,15 @@ class CompareFrame extends JFrame {
 
                     player1 = new OperationPlayer(ops1, panel1, 5, new JLabel(), time1, null, () -> {
                         p1Done.set(true);
-                        statsLabel1.setText(String.format("<html><b>Algorithm:</b> %s<br><b>Time:</b> %.3f ms<br><b>Memory Diff:</b> %s<br><b>Space Complexity:</b> %s<br><b>Swaps:</b> %d &nbsp;&nbsp; <b>Comparisons:</b> %d<br><b>Array Reads:</b> %d &nbsp;&nbsp; <b>Array Writes:</b> %d</html>",
-                                alg1.getDisplayName(), time1 / 1_000_000.0, (memUsed1 > 0 ? memUsed1 + " bytes" : "< 1 KB"), alg1.getSpaceComplexity(), swaps1, comps1, reads1, writes1));
+                        statsLabel1.setText(String.format("<html><b>Algorithm:</b> %s<br><b>Time:</b> %.3f ms<br><b>Memory Diff:</b> %s<br><b>Time Complexity:</b> %s &nbsp;&nbsp; <b>Space Complexity:</b> %s<br><b>Swaps:</b> %d &nbsp;&nbsp; <b>Comparisons:</b> %d<br><b>Array Reads:</b> %d &nbsp;&nbsp; <b>Array Writes:</b> %d</html>",
+                                alg1.getDisplayName(), time1 / 1_000_000.0, (memUsed1 > 0 ? memUsed1 + " bytes" : "< 1 KB"), alg1.getTimeComplexity(), alg1.getSpaceComplexity(), swaps1, comps1, reads1, writes1));
                         checkDone.run();
                     });
                     
                     player2 = new OperationPlayer(ops2, panel2, 5, new JLabel(), time2, null, () -> {
                         p2Done.set(true);
-                        statsLabel2.setText(String.format("<html><b>Algorithm:</b> %s<br><b>Time:</b> %.3f ms<br><b>Memory Diff:</b> %s<br><b>Space Complexity:</b> %s<br><b>Swaps:</b> %d &nbsp;&nbsp; <b>Comparisons:</b> %d<br><b>Array Reads:</b> %d &nbsp;&nbsp; <b>Array Writes:</b> %d</html>",
-                                alg2.getDisplayName(), time2 / 1_000_000.0, (memUsed2 > 0 ? memUsed2 + " bytes" : "< 1 KB"), alg2.getSpaceComplexity(), swaps2, comps2, reads2, writes2));
+                        statsLabel2.setText(String.format("<html><b>Algorithm:</b> %s<br><b>Time:</b> %.3f ms<br><b>Memory Diff:</b> %s<br><b>Time Complexity:</b> %s &nbsp;&nbsp; <b>Space Complexity:</b> %s<br><b>Swaps:</b> %d &nbsp;&nbsp; <b>Comparisons:</b> %d<br><b>Array Reads:</b> %d &nbsp;&nbsp; <b>Array Writes:</b> %d</html>",
+                                alg2.getDisplayName(), time2 / 1_000_000.0, (memUsed2 > 0 ? memUsed2 + " bytes" : "< 1 KB"), alg2.getTimeComplexity(), alg2.getSpaceComplexity(), swaps2, comps2, reads2, writes2));
                         checkDone.run();
                     });
 
