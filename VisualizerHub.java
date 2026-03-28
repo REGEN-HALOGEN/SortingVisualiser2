@@ -22,9 +22,13 @@ import javax.swing.border.*;
 public class VisualizerHub {
     public static void main(String[] args) {
         try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            UIManager.setLookAndFeel("com.formdev.flatlaf.FlatLightLaf");
         } catch (Exception e) {
-            // Use default
+            try {
+                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            } catch (Exception ex) {
+                // Use default
+            }
         }
         SwingUtilities.invokeLater(() -> new HubFrame().setVisible(true));
     }
@@ -322,7 +326,7 @@ class HubFrame extends JFrame {
 
     private void openSortingVisualizer() {
         if (sortingVisualizerWindow == null || !sortingVisualizerWindow.isDisplayable()) {
-            sortingVisualizerWindow = SortingVisualiser.createFrame();
+            sortingVisualizerWindow = SortingVisualiser.createFrame(darkMode);
             sortingVisualizerWindow.setTitle("Sorting Visualizer");
             sortingVisualizerWindow.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
             sortingVisualizerWindow.setLocationRelativeTo(null);
@@ -335,7 +339,7 @@ class HubFrame extends JFrame {
 
     private void openDataStructureVisualizer() {
         if (dataStructureVisualizerWindow == null || !dataStructureVisualizerWindow.isDisplayable()) {
-            dataStructureVisualizerWindow = DataStructureVisualizer.createFrame();
+            dataStructureVisualizerWindow = DataStructureVisualizer.createFrame(darkMode);
             dataStructureVisualizerWindow.setTitle("Data Structure Visualizer");
             dataStructureVisualizerWindow.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
             dataStructureVisualizerWindow.setLocationRelativeTo(null);
@@ -349,6 +353,23 @@ class HubFrame extends JFrame {
     private void toggleTheme() {
         darkMode = !darkMode;
         theme = darkMode ? ThemePalette.dark() : ThemePalette.light();
+        
+        try {
+            if (darkMode) {
+                UIManager.setLookAndFeel("com.formdev.flatlaf.FlatDarkLaf");
+            } else {
+                UIManager.setLookAndFeel("com.formdev.flatlaf.FlatLightLaf");
+            }
+            for (Window w : Window.getWindows()) {
+                SwingUtilities.updateComponentTreeUI(w);
+                if (w instanceof VisualFrame) {
+                    ((VisualFrame) w).setInitialTheme(darkMode);
+                }
+            }
+        } catch (Exception ex) {
+            // ignore
+        }
+        
         applyTheme();
     }
 

@@ -30,7 +30,22 @@ public class DataStructureVisualizer {
      * file so source-file launches can access it safely.
      */
     public static JFrame createFrame() {
-        return new DSVisualizerFrame();
+        return createFrame(true);
+    }
+
+    public static JFrame createFrame(boolean isDark) {
+        try {
+            UIManager.setLookAndFeel(isDark ? "com.formdev.flatlaf.FlatDarkLaf" : "com.formdev.flatlaf.FlatLightLaf");
+        } catch (Exception e) {
+            try {
+                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            } catch (Exception ex) {
+                // ignore
+            }
+        }
+        DSVisualizerFrame frame = new DSVisualizerFrame();
+        // frame.setInitialTheme(isDark); // No theme toggle in this frame yet
+        return frame;
     }
 }
 
@@ -350,25 +365,25 @@ class DSVisualizerFrame extends JFrame {
     private final JTextField valueInput = new JTextField(6);
     private final JTextField sizeInput = new JTextField(3);
     private final JLabel sizeLabel = new JLabel("Size: 0");
-    private final JButton pushPushBtn = new JButton("Push/Add");
-    private final JButton popRemoveBtn = new JButton("Pop/Remove");
-    private final JButton clearBtn = new JButton("Clear");
-    private final JButton randomBtn = new JButton("Random Fill");
-    private final JButton zoomOutBtn = new JButton("Zoom Out");
-    private final JButton zoomInBtn = new JButton("Zoom In");
-    private final JButton insertBeginBtn = new JButton("Insert at Begin");
-    private final JButton insertMiddleBtn = new JButton("Insert at Index");
-    private final JButton insertEndBtn = new JButton("Insert at End");
-    private final JButton deleteBeginBtn = new JButton("Delete Begin");
-    private final JButton deleteMiddleBtn = new JButton("Delete at Index");
-    private final JButton deleteEndBtn = new JButton("Delete End");
-    private final JButton searchBtn = new JButton("Search");
-    private final JButton viewCodeBtn = new JButton("View Code");
+    private final JButton pushPushBtn = new JButton("➕ Push/Add");
+    private final JButton popRemoveBtn = new JButton("➖ Pop/Remove");
+    private final JButton clearBtn = new JButton("✖ Clear");
+    private final JButton randomBtn = new JButton("🔀 Random Fill");
+    private final JButton zoomOutBtn = new JButton("🔍- Zoom Out");
+    private final JButton zoomInBtn = new JButton("🔍+ Zoom In");
+    private final JButton insertBeginBtn = new JButton("↖️ Insert at Begin");
+    private final JButton insertMiddleBtn = new JButton("↗️ Insert at Index");
+    private final JButton insertEndBtn = new JButton("➡️ Insert at End");
+    private final JButton deleteBeginBtn = new JButton("❌ Delete Begin");
+    private final JButton deleteMiddleBtn = new JButton("🗑️ Delete at Index");
+    private final JButton deleteEndBtn = new JButton("🔙 Delete End");
+    private final JButton searchBtn = new JButton("🔎 Search");
+    private final JButton viewCodeBtn = new JButton("📝 View Code");
     // Dequeue specific buttons
-    private final JButton addFrontBtn = new JButton("Add Front");
-    private final JButton addRearBtn = new JButton("Add Rear");
-    private final JButton removeFrontBtn = new JButton("Remove Front");
-    private final JButton removeRearBtn = new JButton("Remove Rear");
+    private final JButton addFrontBtn = new JButton("➕ Add Front");
+    private final JButton addRearBtn = new JButton("➕ Add Rear");
+    private final JButton removeFrontBtn = new JButton("➖ Remove Front");
+    private final JButton removeRearBtn = new JButton("➖ Remove Rear");
     private final JLabel statusLabel = new JLabel("Status: Ready");
     private final DSVisualizerPanel visualPanel = new DSVisualizerPanel();
     private final JTextArea inspectorArea = new JTextArea();

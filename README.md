@@ -237,6 +237,13 @@ For detailed project documentation, refer to the included `ADS_Project_Documenta
 
 ## 📝 Changelog
 
+### v1.4.0 (March 2026)
+**UI & Experience Modernization:**
+- ✨ **FlatLaf Integration**: Integrated FlatLaf for a seamless, modern, advanced UI Look & Feel that functions entirely without external image assets.
+- 🌓 **Global Theme Synchronization**: Introduced a centralized Dark/Light mode toggle in the Hub that automatically cascades and applies to all active visualizer windows on the fly.
+- 🔣 **Unicode Iconography**: Replaced complex external images with universally supported Unicode and Emoji symbols directly on buttons (e.g. ✖ for Clear) ensuring reliable cross-system rendering.
+- 👁️ **Auxiliary Space Toggle**: Added a "Show Aux" checkbox with tooltips to dynamically toggle the visibility of the auxiliary space display (useful for Merge/Radix sort) which instantly resizes the main array view when hidden.
+
 ### v1.3.3 (March 2026)
 **Sorting Visualizer Enhancements:**
 - ✨ **Custom Datasets**: Built in generators for Gaussian, Reverse, Few Unique, Nearly Sorted.

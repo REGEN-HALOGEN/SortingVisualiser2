@@ -9,10 +9,13 @@ import javax.swing.*;
  * SortingVisualiser.java
  * Single-file Swing sorting visualizer.
  *
+ * Requirements:
+ * Download flatlaf.jar for modern UI theme (optional but recommended)
+ *
  * Compile:
- * javac SortingVisualiser.java
+ * javac -cp ".;flatlaf.jar" SortingVisualiser.java
  * Run:
- * java SortingVisualiser
+ * java -cp ".;flatlaf.jar" SortingVisualiser
  *
  * Uses: Java 8+
  */
@@ -28,7 +31,22 @@ public class SortingVisualiser {
      * class-loader access issues with the package-private VisualFrame type.
      */
     public static JFrame createFrame() {
-        return new VisualFrame();
+        return createFrame(true);
+    }
+
+    public static JFrame createFrame(boolean isDark) {
+        try {
+            UIManager.setLookAndFeel(isDark ? "com.formdev.flatlaf.FlatDarkLaf" : "com.formdev.flatlaf.FlatLightLaf");
+        } catch (Exception e) {
+            try {
+                UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
+            } catch (Exception ex) {
+                // ignore fallback errors
+            }
+        }
+        VisualFrame frame = new VisualFrame();
+        frame.setInitialTheme(isDark);
+        return frame;
     }
 }
 
@@ -86,15 +104,16 @@ class VisualFrame extends JFrame {
     private final JComboBox<AlgorithmDefinition> algoSelect = new JComboBox<>(ALGORITHMS);
     private final JSlider sizeSlider = new JSlider(1, 300, 80);
     private final JSlider speedSlider = new JSlider(10, 200, 80); // lower delay target = faster
-    private final JButton randomizeBtn = new JButton("Randomize");
-    private final JButton loadCustomBtn = new JButton("Load Custom Array");
-    private final JButton startBtn = new JButton("Start");
-    private final JButton pauseBtn = new JButton("Pause");
-    private final JButton resetBtn = new JButton("Reset");
-    private final JButton clearBtn = new JButton("Clear");
-    private final JButton viewCodeBtn = new JButton("View Code");
-    private final JButton analysisBtn = new JButton("Sort Analysis");
-    private final JButton compareBtn = new JButton("Compare");
+    private final JButton randomizeBtn = new JButton("🔀 Randomize");
+    private final JButton loadCustomBtn = new JButton("📂 Load Custom Array");
+    private final JButton startBtn = new JButton("▶ Start");
+    private final JButton pauseBtn = new JButton("⏸ Pause");
+    private final JButton resetBtn = new JButton("🔄 Reset");
+    private final JButton clearBtn = new JButton("✖ Clear");
+    private final JButton viewCodeBtn = new JButton("📝 View Code");
+    private final JButton analysisBtn = new JButton("📊 Sort Analysis");
+    private final JButton compareBtn = new JButton("🏁 Compare");
+    private final JButton themeToggleBtn = new JButton("☀️ Light Mode");
     private final JLabel statusLabel = new JLabel("Status: Ready");
     private final JTextField sizeValueField = new JTextField("80");
     {
@@ -104,6 +123,7 @@ class VisualFrame extends JFrame {
 
     private boolean skipRandomGeneration = false;
     private final JCheckBox numberToggle = new JCheckBox("Show Numbers", true);
+    private final JCheckBox auxToggle = new JCheckBox("Show Aux", true);
 
     private OperationPlayer player;
     private CodeViewerDialog codeViewer;
@@ -133,11 +153,15 @@ class VisualFrame extends JFrame {
         compareBtn.setToolTipText("Compare multiple algorithms running simultaneously.");
         sizeValueField.setToolTipText("Current array size.");
         numberToggle.setToolTipText("Toggle display of numeric values on the bars.");
+        auxToggle.setToolTipText("Toggle display of auxiliary space arrays during out-of-place sorting (e.g., Merge Sort).");
+        themeToggleBtn.setToolTipText("Toggle between Dark and Light mode.");
 
         speedSlider.setInverted(true);
 
         add(visualPanel, BorderLayout.CENTER);
-        add(buildControlPanel(), BorderLayout.SOUTH);
+        JPanel controlPanel = buildControlPanel();
+        controlPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        add(controlPanel, BorderLayout.SOUTH);
 
         visualPanel.clearArray();
         activeAlgorithm = getSelectedAlgorithm();
@@ -188,11 +212,11 @@ class VisualFrame extends JFrame {
             if (player != null) {
                 if (player.isPaused()) {
                     player.resume();
-                    pauseBtn.setText("Pause");
+                    pauseBtn.setText("⏸ Pause");
                     statusLabel.setText("Status: Playing");
                 } else {
                     player.pause();
-                    pauseBtn.setText("Resume");
+                    pauseBtn.setText("▶ Resume");
                     statusLabel.setText("Status: Paused");
                 }
             }
@@ -227,8 +251,37 @@ class VisualFrame extends JFrame {
         });
 
         numberToggle.addActionListener(e -> visualPanel.setShowNumbers(numberToggle.isSelected()));
+        auxToggle.addActionListener(e -> visualPanel.setShowAux(auxToggle.isSelected()));
+
+        themeToggleBtn.addActionListener(e -> toggleTheme());
 
         pack();
+    }
+
+    public void setInitialTheme(boolean isDark) {
+        if (isDark) {
+            themeToggleBtn.setText("☀️ Light Mode");
+        } else {
+            themeToggleBtn.setText("🌙 Dark Mode");
+        }
+    }
+
+    private void toggleTheme() {
+        try {
+            boolean isDark = UIManager.getLookAndFeel().getClass().getName().contains("Dark");
+            if (isDark) {
+                UIManager.setLookAndFeel("com.formdev.flatlaf.FlatLightLaf");
+                themeToggleBtn.setText("🌙 Dark Mode");
+            } else {
+                UIManager.setLookAndFeel("com.formdev.flatlaf.FlatDarkLaf");
+                themeToggleBtn.setText("☀️ Light Mode");
+            }
+            for (Window w : Window.getWindows()) {
+                SwingUtilities.updateComponentTreeUI(w);
+            }
+        } catch (Exception ex) {
+            System.err.println("Failed to toggle theme: " + ex.getMessage());
+        }
     }
 
     private static AlgorithmDefinition[] createAlgorithms() {
@@ -350,9 +403,12 @@ class VisualFrame extends JFrame {
 
         JPanel bottom = new JPanel(new FlowLayout(FlowLayout.LEFT));
         bottom.add(statusLabel);
+        bottom.add(Box.createHorizontalStrut(20));
         bottom.add(numberToggle);
+        bottom.add(auxToggle);
         bottom.add(analysisBtn);
         bottom.add(compareBtn);
+        bottom.add(themeToggleBtn);
 
         panel.add(top, BorderLayout.NORTH);
         panel.add(bottom, BorderLayout.SOUTH);
@@ -570,6 +626,7 @@ class VisualPanel extends JPanel {
     private int highlightA = -1, highlightB = -1; // indices being compared/swapped
     private int peakAuxElements = 0;
     private boolean showNumbers = true;
+    private boolean showAux = true;
 
     public VisualPanel() {
         setPreferredSize(new Dimension(1000, 520));
@@ -578,6 +635,11 @@ class VisualPanel extends JPanel {
 
     public void setShowNumbers(boolean show) {
         this.showNumbers = show;
+        repaint();
+    }
+
+    public void setShowAux(boolean show) {
+        this.showAux = show;
         repaint();
     }
 
@@ -693,7 +755,7 @@ class VisualPanel extends JPanel {
         int w = getWidth();
         int h = getHeight();
         
-        int mainH = (visualAuxSpace != null) ? (int)(h * 0.7) : h;
+        int mainH = (visualAuxSpace != null && showAux) ? (int)(h * 0.7) : h;
         int auxH = h - mainH;
         
         int n = array.length;
@@ -742,7 +804,7 @@ class VisualPanel extends JPanel {
         }
         
         // Draw aux array if present
-        if (visualAuxSpace != null) {
+        if (visualAuxSpace != null && showAux) {
             g2.setColor(Color.DARK_GRAY);
             g2.drawLine(0, mainH, w, mainH);
             
@@ -1413,11 +1475,11 @@ class SortAnalysisDialog extends JDialog {
         distributionCombo.setToolTipText("Select the data distribution pattern for the array");
         topPanel.add(distributionCombo);
         
-        JButton autoRunBtn = new JButton("Run Auto Analysis");
+        JButton autoRunBtn = new JButton("▶ Run Auto Analysis");
         autoRunBtn.setToolTipText("Run all algorithms on the specified dataset and record the results");
-        JButton exportBtn = new JButton("Export to CSV");
+        JButton exportBtn = new JButton("💾 Export to CSV");
         exportBtn.setToolTipText("Save the analysis history below to a CSV file");
-        JButton clearDataBtn = new JButton("Clear Data");
+        JButton clearDataBtn = new JButton("✖ Clear Data");
         clearDataBtn.setToolTipText("Clear all previously recorded sort analysis data");
 
         topPanel.add(autoRunBtn);
@@ -1452,6 +1514,123 @@ class SortAnalysisDialog extends JDialog {
         table.setRowHeight(25);
         table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 14));
         table.setFont(new Font("Arial", Font.PLAIN, 14));
+
+        table.getTableHeader().setToolTipText("Click on a header to see what it means");
+        table.getTableHeader().addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                int col = table.columnAtPoint(e.getPoint());
+                if (col >= 0) {
+                    String colName = table.getColumnName(col);
+                    String message = "";
+                    switch (colName) {
+                        case "Algorithm":
+                            message = "<html><body style='width: 300px; padding: 10px;'>"
+                                    + "<h2>Algorithm</h2>"
+                                    + "<hr>"
+                                    + "<p>The name of the sorting algorithm used to sort the array, along with the distribution pattern of the input data (e.g., Random, Nearly Sorted).</p>"
+                                    + "<p>Different algorithms perform vastly differently depending on the initial state of the data.</p>"
+                                    + "</body></html>";
+                            break;
+                        case "Array Size":
+                            message = "<html><body style='width: 300px; padding: 10px;'>"
+                                    + "<h2>Array Size (<i>N</i>)</h2>"
+                                    + "<hr>"
+                                    + "<p>The total number of elements in the array that was sorted.</p>"
+                                    + "<p>This is the <b><i>N</i></b> value referred to in Time and Space Complexity (e.g., O(N²)). Larger sizes will exponentially increase the time taken for slower algorithms.</p>"
+                                    + "</body></html>";
+                            break;
+                        case "Time (ms)":
+                            message = "<html><body style='width: 300px; padding: 10px;'>"
+                                    + "<h2>Time (ms)</h2>"
+                                    + "<hr>"
+                                    + "<p>The actual CPU time taken to execute the sorting algorithm in milliseconds.</p>"
+                                    + "<p><b>Note:</b> This only measures the raw sorting execution, not the UI rendering time. It relies on the system's high-resolution timer (`System.nanoTime()`), but can still be affected by background system processes and warm-up (JIT compilation bounds).</p>"
+                                    + "</body></html>";
+                            break;
+                        case "Actual Memory Diff":
+                            message = "<html><body style='width: 300px; padding: 10px;'>"
+                                    + "<h2>Actual Memory Difference</h2>"
+                                    + "<hr>"
+                                    + "<p>The difference in the JVM's memory usage taken immediately before and after the algorithm executes.</p>"
+                                    + "<p><b>Important:</b> This is an approximation. The Java Garbage Collector (GC) runs non-deterministically, meaning objects might be cleaned up during the sort, skewing these numbers. Values less than 1KB are usually negligible internal overhead.</p>"
+                                    + "</body></html>";
+                            break;
+                        case "Peak Aux Elements":
+                            message = "<html><body style='width: 300px; padding: 10px;'>"
+                                    + "<h2>Peak Auxiliary Elements</h2>"
+                                    + "<hr>"
+                                    + "<p>The maximum size of any additional array(s) created by the algorithm during execution.</p>"
+                                    + "<ul>"
+                                    + "<li><b>In-place sorts</b> (like Bubble, Quicksort) will show <b>0</b> here, as they sort within the original array boundaries.</li>"
+                                    + "<li><b>Out-of-place sorts</b> (like Merge Sort) typically allocate additional array space proportional to the input size (e.g., N), showing higher values here.</li>"
+                                    + "</ul>"
+                                    + "</body></html>";
+                            break;
+                        case "Time Complexity":
+                            message = "<html><body style='width: 300px; padding: 10px;'>"
+                                    + "<h2>Time Complexity (Average Case)</h2>"
+                                    + "<hr>"
+                                    + "<p>The theoretical, mathematical description of how the algorithm's runtime grows as the array size (N) increases.</p>"
+                                    + "<ul>"
+                                    + "<li><b>O(N²)</b>: Slow. 10x more items = 100x more time. (e.g., Bubble Sort)</li>"
+                                    + "<li><b>O(N log N)</b>: Fast and standard for general sorts. (e.g., Quick Sort, Merge Sort)</li>"
+                                    + "<li><b>O(N)</b>: Extremely fast, usually limited by constraints. (e.g., Radix Sort)</li>"
+                                    + "</ul>"
+                                    + "</body></html>";
+                            break;
+                        case "Space Complexity":
+                            message = "<html><body style='width: 300px; padding: 10px;'>"
+                                    + "<h2>Space Complexity (Worst Case)</h2>"
+                                    + "<hr>"
+                                    + "<p>The theoretical amount of additional memory the algorithm requires, expressed mathematically.</p>"
+                                    + "<ul>"
+                                    + "<li><b>O(1)</b>: Minimal extra memory needed. (In-place)</li>"
+                                    + "<li><b>O(log N)</b>: A small amount of extra memory, usually stack frames for recursion (e.g., Quicksort).</li>"
+                                    + "<li><b>O(N)</b>: Requires copying the array, effectively doubling memory usage. (e.g., Merge sort)</li>"
+                                    + "</ul>"
+                                    + "</body></html>";
+                            break;
+                        case "Swaps":
+                            message = "<html><body style='width: 300px; padding: 10px;'>"
+                                    + "<h2>Total Swaps</h2>"
+                                    + "<hr>"
+                                    + "<p>The total number of times two elements in the array directly exchanged positions.</p>"
+                                    + "<p>Algorithms like Selection Sort minimize swaps, while Bubble Sort relies heavily on them.</p>"
+                                    + "</body></html>";
+                            break;
+                        case "Array Writes":
+                            message = "<html><body style='width: 300px; padding: 10px;'>"
+                                    + "<h2>Array Writes</h2>"
+                                    + "<hr>"
+                                    + "<p>The total number of times an assignment was made to modify the main array's contents.</p>"
+                                    + "<p><b>Context:</b> A single 'Swap' operation usually entails writing to the array twice (plus a temporary variable).</p>"
+                                    + "</body></html>";
+                            break;
+                        case "Array Reads":
+                            message = "<html><body style='width: 300px; padding: 10px;'>"
+                                    + "<h2>Array Reads</h2>"
+                                    + "<hr>"
+                                    + "<p>The total number of times an element was fetched (accessed) from the main array.</p>"
+                                    + "<p>This number is driven up by comparisons and copying operations.</p>"
+                                    + "</body></html>";
+                            break;
+                        case "Comparisons":
+                            message = "<html><body style='width: 300px; padding: 10px;'>"
+                                    + "<h2>Comparisons</h2>"
+                                    + "<hr>"
+                                    + "<p>The total number of times the algorithm compared two elements against each other (e.g., asking 'Is A greater than B?').</p>"
+                                    + "<p>This is a primary metric for determining the efficiency and Time Complexity class of non-linear sorting algorithms.</p>"
+                                    + "</body></html>";
+                            break;
+                        default:
+                            return;
+                    }
+                    javax.swing.JOptionPane.showMessageDialog(SortAnalysisDialog.this, 
+                        message, "Explanation: " + colName, javax.swing.JOptionPane.INFORMATION_MESSAGE);
+                }
+            }
+        });
         
         add(topPanel, BorderLayout.NORTH);
         add(new JScrollPane(table), BorderLayout.CENTER);
@@ -1599,7 +1778,7 @@ class CompareFrame extends JFrame {
     private final JComboBox<AlgorithmDefinition> algoSelect1;
     private final JComboBox<AlgorithmDefinition> algoSelect2;
     private final JSpinner sizeSpinner = new JSpinner(new SpinnerNumberModel(150, 10, 800, 10));
-    private final JButton startRaceBtn = new JButton("Start Race");
+    private final JButton startRaceBtn = new JButton("🏁 Start Race");
     private final JCheckBox numberToggle = new JCheckBox("Show Numbers", true);
     private final JLabel statusLabel = new JLabel("Status: Ready to Race");
     
