@@ -39,6 +39,9 @@ Visualize 8 popular sorting algorithms with step-by-step animations:
 - **Sort Analysis**: Dedicated statistics window tracking scientific metrics including Time, Memory Usage, Space Complexity, Swaps, Comparisons, Array Reads, and Array Writes.
 - **Algorithm Comparison**: Side-by-side race mode comparing two algorithms visually with individual metrics, adjustable array sizes, and toggleable number overlays.
 - **Research-grade Accuracy**: Employs a proxy wrapper pattern to capture true mathematical array operations outperforming pure visual updates.
+- **Tooltips** added across all UI elements to clarify function behavior.
+- **Custom Data Distributions** added (Nearly Sorted, Reversed, Few Unique, Gaussian).
+- **Live Auxiliary Space Indication** with visual array split screens and dynamic element counters.
 
 ### 🔗 Data Structure Visualizer
 Interactive visualization of 6 fundamental data structures:
@@ -233,6 +236,12 @@ For detailed project documentation, refer to the included `ADS_Project_Documenta
 ---
 
 ## 📝 Changelog
+
+### v1.3.3 (March 2026)
+**Sorting Visualizer Enhancements:**
+- ✨ **Custom Datasets**: Built in generators for Gaussian, Reverse, Few Unique, Nearly Sorted.
+- 🗄️ **Tracking Auxiliary Space Visuals**: Native tracker for observing temporary `tmp` space operations dynamically during algorithms like Merge Sort and Radix Sort.
+- 🖱️ **Tooltips & UI Clear**: Helpful descriptive tooltips describing buttons across tools, plus a new "Clear Data" feature for the analysis windows.
 
 ### v1.3.2 (March 2026)
 **Sorting Visualizer Enhancements:**

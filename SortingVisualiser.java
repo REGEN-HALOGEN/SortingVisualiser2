@@ -118,6 +118,22 @@ class VisualFrame extends JFrame {
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
+        // Add tooltips to UI components
+        algoSelect.setToolTipText("Select the sorting algorithm to visualize.");
+        sizeSlider.setToolTipText("Adjust the size (number of elements) of the array.");
+        speedSlider.setToolTipText("Adjust the sorting animation speed.");
+        randomizeBtn.setToolTipText("Generate a new random array of the selected size.");
+        loadCustomBtn.setToolTipText("Input a custom list of numbers to sort.");
+        startBtn.setToolTipText("Start the sorting visualization.");
+        pauseBtn.setToolTipText("Pause or resume the current visualization.");
+        resetBtn.setToolTipText("Reset the array to its initial unsorted state.");
+        clearBtn.setToolTipText("Clear the array entirely.");
+        viewCodeBtn.setToolTipText("View the source code for the selected algorithm.");
+        analysisBtn.setToolTipText("View statistics and history of past sorts.");
+        compareBtn.setToolTipText("Compare multiple algorithms running simultaneously.");
+        sizeValueField.setToolTipText("Current array size.");
+        numberToggle.setToolTipText("Toggle display of numeric values on the bars.");
+
         speedSlider.setInverted(true);
 
         add(visualPanel, BorderLayout.CENTER);
@@ -507,7 +523,7 @@ class VisualFrame extends JFrame {
                 long memAfter = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
                 
                 long memUsed = Math.max(0, memAfter - memBefore);
-                SortStats stats = new SortStats(algorithm.getDisplayName(), algorithmTimeNanos, memUsed, algorithm.getTimeComplexity(), algorithm.getSpaceComplexity(), metrics.swaps, metrics.arrayWrites, metrics.arrayReads, metrics.comparisons, arr.length);
+                SortStats stats = new SortStats(algorithm.getDisplayName(), algorithmTimeNanos, memUsed, algorithm.getTimeComplexity(), algorithm.getSpaceComplexity(), metrics.swaps, metrics.arrayWrites, metrics.arrayReads, metrics.comparisons, metrics.peakAuxSpace, arr.length);
 
                 SwingUtilities.invokeLater(() -> {
                     history.add(stats);
@@ -550,7 +566,9 @@ class VisualFrame extends JFrame {
 class VisualPanel extends JPanel {
     private int[] array;
     private int[] aux; // keep a copy for reset
+    private int[] visualAuxSpace; // aux array for visualization
     private int highlightA = -1, highlightB = -1; // indices being compared/swapped
+    private int peakAuxElements = 0;
     private boolean showNumbers = true;
 
     public VisualPanel() {
@@ -583,6 +601,8 @@ class VisualPanel extends JPanel {
     public void clearArray() {
         this.array = null;
         this.aux = null;
+        this.visualAuxSpace = null;
+        this.peakAuxElements = 0;
         resetHighlights();
         repaint();
     }
@@ -601,7 +621,7 @@ class VisualPanel extends JPanel {
     }
 
     public void applyOperation(Operation op, boolean repaintAfter) {
-        if (array == null || op == null)
+        if (op == null)
             return;
 
         switch (op.type) {
@@ -610,20 +630,38 @@ class VisualPanel extends JPanel {
                 highlightB = op.j;
                 break;
             case SWAP:
-                int tmp = array[op.i];
-                array[op.i] = array[op.j];
-                array[op.j] = tmp;
+                if (array != null) {
+                    int tmp = array[op.i];
+                    array[op.i] = array[op.j];
+                    array[op.j] = tmp;
+                }
                 highlightA = op.i;
                 highlightB = op.j;
                 break;
             case OVERWRITE:
-                array[op.i] = op.value;
+                if (array != null) {
+                    array[op.i] = op.value;
+                }
                 highlightA = op.i;
                 highlightB = -1;
                 break;
             case MARK_FINAL:
                 highlightA = op.i;
                 highlightB = -1;
+                break;
+            case AUX_ALLOCATE:
+                if (visualAuxSpace == null || visualAuxSpace.length != op.value) {
+                    visualAuxSpace = new int[op.value];
+                }
+                if (op.value > peakAuxElements) peakAuxElements = op.value;
+                break;
+            case AUX_WRITE:
+                if (visualAuxSpace != null && op.i >= 0 && op.i < visualAuxSpace.length) {
+                    visualAuxSpace[op.i] = op.value;
+                }
+                break;
+            case AUX_CLEAR:
+                visualAuxSpace = null;
                 break;
         }
 
@@ -639,6 +677,8 @@ class VisualPanel extends JPanel {
     public void resetToOriginal() {
         if (aux != null)
             array = aux.clone();
+        visualAuxSpace = null;
+        peakAuxElements = 0;
         resetHighlights();
         repaint();
     }
@@ -652,6 +692,10 @@ class VisualPanel extends JPanel {
         Graphics2D g2 = (Graphics2D) g;
         int w = getWidth();
         int h = getHeight();
+        
+        int mainH = (visualAuxSpace != null) ? (int)(h * 0.7) : h;
+        int auxH = h - mainH;
+        
         int n = array.length;
         double barWidth = Math.max(1, (double) w / n);
 
@@ -663,11 +707,12 @@ class VisualPanel extends JPanel {
             if (v > max)
                 max = v;
 
+        // Draw main array
         for (int i = 0; i < n; i++) {
             int val = array[i];
-            int barH = (int) ((val / (double) max) * (h - 20));
+            int barH = (int) ((val / (double) max) * (mainH - 20));
             int x = (int) (i * barWidth);
-            int y = h - barH;
+            int y = mainH - barH;
 
             if (i == highlightA || i == highlightB) {
                 g2.setColor(Color.RED);
@@ -695,12 +740,38 @@ class VisualPanel extends JPanel {
                 }
             }
         }
+        
+        // Draw aux array if present
+        if (visualAuxSpace != null) {
+            g2.setColor(Color.DARK_GRAY);
+            g2.drawLine(0, mainH, w, mainH);
+            
+            g2.setColor(Color.LIGHT_GRAY);
+            g2.setFont(new Font("Arial", Font.PLAIN, 12));
+            g2.drawString("Current Aux Space Elements: " + visualAuxSpace.length + " | Peak: " + peakAuxElements, 10, mainH + 15);
+            
+            int auxN = visualAuxSpace.length;
+            if (auxN > 0) {
+                double auxBarWidth = Math.max(1, (double) w / auxN);
+                for (int i = 0; i < auxN; i++) {
+                    int val = visualAuxSpace[i];
+                    if (val <= 0) continue; // don't draw uninitialized
+                    
+                    int barH = (int) ((val / (double) max) * (auxH - 25));
+                    int x = (int) (i * auxBarWidth);
+                    int y = h - barH;
+
+                    g2.setColor(Color.getHSBColor(0.2f, 0.8f, 0.8f)); // Use a different hue for aux array
+                    g2.fillRect(x, y, (int) Math.ceil(auxBarWidth), barH);
+                }
+            }
+        }
     }
 }
 
 /* ---------------------------- Operation model ---------------------------- */
 enum OpType {
-    COMPARE, SWAP, OVERWRITE, MARK_FINAL
+    COMPARE, SWAP, OVERWRITE, MARK_FINAL, AUX_ALLOCATE, AUX_WRITE, AUX_CLEAR
 }
 
 class Operation {
@@ -747,6 +818,18 @@ class Operation {
 
     public static Operation markFinal(int i, int codeLine) {
         return new Operation(OpType.MARK_FINAL, i, -1, 0, codeLine);
+    }
+
+    public static Operation auxAllocate(int size) {
+        return new Operation(OpType.AUX_ALLOCATE, -1, -1, size, -1);
+    }
+
+    public static Operation auxWrite(int i, int value) {
+        return new Operation(OpType.AUX_WRITE, i, -1, value, -1); // value could be any
+    }
+
+    public static Operation auxClear() {
+        return new Operation(OpType.AUX_CLEAR, -1, -1, 0, -1);
     }
 }
 
@@ -1096,6 +1179,7 @@ class SortingAlgorithms {
         mergeSortRec(a, l, m);
         mergeSortRec(a, m + 1, r);
 
+        a.allocateAux(r - l + 1);
         int[] tmp = new int[r - l + 1];
         int i = l, j = m + 1, k = 0;
         final int compareLine = 7;
@@ -1105,19 +1189,30 @@ class SortingAlgorithms {
             a.compareVisual(i, j, compareLine);
             a.metrics.comparisons++;
             if (a.get(i) <= a.get(j)) {
-                tmp[k++] = a.get(i++);
-                a.metrics.arrayWrites++; // auxiliary array write
+                tmp[k] = a.get(i++);
+                a.writeAux(k, tmp[k]);
+                k++;
             } else {
-                tmp[k++] = a.get(j++);
-                a.metrics.arrayWrites++; // auxiliary array write
+                tmp[k] = a.get(j++);
+                a.writeAux(k, tmp[k]);
+                k++;
             }
         }
-        while (i <= m) { tmp[k++] = a.get(i++); a.metrics.arrayWrites++; }
-        while (j <= r) { tmp[k++] = a.get(j++); a.metrics.arrayWrites++; }
+        while (i <= m) { 
+            tmp[k] = a.get(i++); 
+            a.writeAux(k, tmp[k]);
+            k++;
+        }
+        while (j <= r) { 
+            tmp[k] = a.get(j++); 
+            a.writeAux(k, tmp[k]);
+            k++;
+        }
 
         for (int t = 0; t < tmp.length; t++) {
             a.setVisual(l + t, tmp[t], overwriteLine); // arrayWrites implicitly in setVisual
         }
+        a.clearAux(r - l + 1);
     }
 
     public static void quickSort(int[] array, List<Operation> ops, SortMetrics metrics) {
@@ -1236,6 +1331,7 @@ class SortingAlgorithms {
 
     private static void countingSortForRadix(TrackedArray a, int exp) {
         int n = a.length();
+        a.allocateAux(n); // Output array
         int[] output = new int[n];
         int[] count = new int[10];
         final int overwriteLine = 7;
@@ -1246,13 +1342,14 @@ class SortingAlgorithms {
         for (int i = n - 1; i >= 0; i--) {
             int digit = (a.get(i) / exp) % 10;
             output[count[digit] - 1] = a.get(i);
-            a.metrics.arrayWrites++; // auxiliary array write
+            a.writeAux(count[digit] - 1, output[count[digit] - 1]); // auxiliary array write
             count[digit]--;
         }
 
         for (int i = 0; i < n; i++) {
             a.setVisual(i, output[i], overwriteLine); // writes array implicitly
         }
+        a.clearAux(n);
     }
 }
 
@@ -1265,6 +1362,8 @@ class SortMetrics {
     public long swaps = 0;
     public long arrayReads = 0;
     public long arrayWrites = 0;
+    public long currentAuxSpace = 0;
+    public long peakAuxSpace = 0;
 }
 
 class SortStats {
@@ -1277,9 +1376,10 @@ class SortStats {
     public final long writes;
     public final long reads;
     public final long comparisons;
+    public final long peakAuxElements;
     public final int arraySize;
 
-    public SortStats(String algorithmName, long timeNanos, long memoryBytes, String timeComplexity, String spaceComplexity, long swaps, long writes, long reads, long comparisons, int arraySize) {
+    public SortStats(String algorithmName, long timeNanos, long memoryBytes, String timeComplexity, String spaceComplexity, long swaps, long writes, long reads, long comparisons, long peakAuxElements, int arraySize) {
         this.algorithmName = algorithmName;
         this.timeNanos = timeNanos;
         this.memoryBytes = memoryBytes;
@@ -1289,6 +1389,7 @@ class SortStats {
         this.writes = writes;
         this.reads = reads;
         this.comparisons = comparisons;
+        this.peakAuxElements = peakAuxElements;
         this.arraySize = arraySize;
     }
 }
@@ -1303,12 +1404,25 @@ class SortAnalysisDialog extends JDialog {
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         topPanel.add(new JLabel("Array Size:"));
         JSpinner sizeSpinner = new JSpinner(new SpinnerNumberModel(1000, 10, 1000000, 100));
+        sizeSpinner.setToolTipText("Set the size of the array to be sorted in the analysis");
         topPanel.add(sizeSpinner);
         
+        topPanel.add(new JLabel("Distribution:"));
+        String[] distOptions = {"Random", "Nearly Sorted", "Reversed", "Few Unique", "Gaussian"};
+        JComboBox<String> distributionCombo = new JComboBox<>(distOptions);
+        distributionCombo.setToolTipText("Select the data distribution pattern for the array");
+        topPanel.add(distributionCombo);
+        
         JButton autoRunBtn = new JButton("Run Auto Analysis");
+        autoRunBtn.setToolTipText("Run all algorithms on the specified dataset and record the results");
         JButton exportBtn = new JButton("Export to CSV");
+        exportBtn.setToolTipText("Save the analysis history below to a CSV file");
+        JButton clearDataBtn = new JButton("Clear Data");
+        clearDataBtn.setToolTipText("Clear all previously recorded sort analysis data");
+
         topPanel.add(autoRunBtn);
         topPanel.add(exportBtn);
+        topPanel.add(clearDataBtn);
         
         JProgressBar progressBar = new JProgressBar(0, 100);
         progressBar.setStringPainted(true);
@@ -1317,7 +1431,7 @@ class SortAnalysisDialog extends JDialog {
         topPanel.add(progressBar);
         topPanel.add(statusLabel);
 
-        String[] columns = {"Algorithm", "Array Size", "Time (ms)", "Actual Memory Diff", "Time Complexity", "Space Complexity", "Swaps", "Array Writes", "Array Reads", "Comparisons"};
+        String[] columns = {"Algorithm", "Array Size", "Time (ms)", "Actual Memory Diff", "Peak Aux Elements", "Time Complexity", "Space Complexity", "Swaps", "Array Writes", "Array Reads", "Comparisons"};
         javax.swing.table.DefaultTableModel model = new javax.swing.table.DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) { return false; }
@@ -1328,6 +1442,7 @@ class SortAnalysisDialog extends JDialog {
                 s.algorithmName, s.arraySize,
                 String.format(java.util.Locale.US, "%.3f", s.timeNanos / 1_000_000.0),
                 (s.memoryBytes > 0 ? s.memoryBytes + " bytes" : "< 1 KB"),
+                s.peakAuxElements,
                 s.timeComplexity, s.spaceComplexity, s.swaps, s.writes, s.reads, s.comparisons
             });
         }
@@ -1341,8 +1456,15 @@ class SortAnalysisDialog extends JDialog {
         add(topPanel, BorderLayout.NORTH);
         add(new JScrollPane(table), BorderLayout.CENTER);
 
+        clearDataBtn.addActionListener(e -> {
+            history.clear();
+            model.setRowCount(0);
+            statusLabel.setText("Analysis data cleared.");
+        });
+
         autoRunBtn.addActionListener(e -> {
             int size = (Integer) sizeSpinner.getValue();
+            String distribution = (String) distributionCombo.getSelectedItem();
             autoRunBtn.setEnabled(false);
             
             progressBar.setValue(0);
@@ -1371,7 +1493,35 @@ class SortAnalysisDialog extends JDialog {
             Thread t = new Thread(() -> {
                 int[] arr = new int[size];
                 java.util.Random rnd = new java.util.Random();
-                for(int i = 0; i < size; i++) arr[i] = rnd.nextInt(400) + 5;
+                
+                switch (distribution) {
+                    case "Nearly Sorted":
+                        for (int i = 0; i < size; i++) arr[i] = i;
+                        for (int i = 0; i < size * 0.05; i++) { // 5% noise
+                            int i1 = rnd.nextInt(size);
+                            int i2 = rnd.nextInt(size);
+                            int temp = arr[i1];
+                            arr[i1] = arr[i2];
+                            arr[i2] = temp;
+                        }
+                        break;
+                    case "Reversed":
+                        for (int i = 0; i < size; i++) arr[i] = size - i;
+                        break;
+                    case "Few Unique":
+                        for (int i = 0; i < size; i++) arr[i] = (rnd.nextInt(5) + 1) * (size / 5);
+                        break;
+                    case "Gaussian":
+                        for (int i = 0; i < size; i++) {
+                            int val = (int) (rnd.nextGaussian() * (size / 4) + (size / 2));
+                            arr[i] = Math.max(1, Math.min(size, val));
+                        }
+                        break;
+                    case "Random":
+                    default:
+                        for(int i = 0; i < size; i++) arr[i] = rnd.nextInt(400) + 5;
+                        break;
+                }
                 
                 java.util.concurrent.ExecutorService executor = java.util.concurrent.Executors.newFixedThreadPool(cores);
 
@@ -1387,7 +1537,8 @@ class SortAnalysisDialog extends JDialog {
                         long memAfter = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
                         long memUsed = Math.max(0, memAfter - memBefore);
                         
-                        SortStats stats = new SortStats(alg.getDisplayName(), algorithmTimeNanos, memUsed, alg.getTimeComplexity(), alg.getSpaceComplexity(), metrics.swaps, metrics.arrayWrites, metrics.arrayReads, metrics.comparisons, size);
+                        String algNameWithDist = alg.getDisplayName() + " (" + distribution + ")";
+                        SortStats stats = new SortStats(algNameWithDist, algorithmTimeNanos, memUsed, alg.getTimeComplexity(), alg.getSpaceComplexity(), metrics.swaps, metrics.arrayWrites, metrics.arrayReads, metrics.comparisons, metrics.peakAuxSpace, size);
                         
                         SwingUtilities.invokeLater(() -> {
                             completed[0]++;
@@ -1398,6 +1549,7 @@ class SortAnalysisDialog extends JDialog {
                                 stats.algorithmName, stats.arraySize,
                                 String.format(java.util.Locale.US, "%.3f", stats.timeNanos / 1_000_000.0),
                                 (stats.memoryBytes > 0 ? stats.memoryBytes + " bytes" : "< 1 KB"),
+                                stats.peakAuxElements,
                                 stats.timeComplexity, stats.spaceComplexity, stats.swaps, stats.writes, stats.reads, stats.comparisons
                             });
                             progressBar.setValue(percent);
@@ -1425,11 +1577,11 @@ class SortAnalysisDialog extends JDialog {
                     file = new java.io.File(file.getParentFile(), file.getName() + ".csv");
                 }
                 try (java.io.PrintWriter writer = new java.io.PrintWriter(file)) {
-                    writer.println("Algorithm,Array Size,Time (ms),Actual Memory Diff,Time Complexity,Space Complexity,Swaps,Array Writes,Array Reads,Comparisons");
+                    writer.println("Algorithm,Array Size,Time (ms),Actual Memory Diff,Peak Aux Elements,Time Complexity,Space Complexity,Swaps,Array Writes,Array Reads,Comparisons");
                     for (SortStats s : history) {
-                        writer.printf(java.util.Locale.US, "%s,%d,%.3f,%d,%s,%s,%d,%d,%d,%d%n",
+                        writer.printf(java.util.Locale.US, "%s,%d,%.3f,%d,%d,%s,%s,%d,%d,%d,%d%n",
                             s.algorithmName, s.arraySize, (s.timeNanos / 1_000_000.0),
-                            s.memoryBytes, s.timeComplexity, s.spaceComplexity, s.swaps, s.writes, s.reads, s.comparisons);
+                            s.memoryBytes, s.peakAuxElements, s.timeComplexity, s.spaceComplexity, s.swaps, s.writes, s.reads, s.comparisons);
                     }
                     JOptionPane.showMessageDialog(this, "Export complete!", "Success", JOptionPane.INFORMATION_MESSAGE);
                 } catch (Exception ex) {
@@ -1558,6 +1710,7 @@ class CompareFrame extends JFrame {
                 final long writes1 = m1.arrayWrites;
                 final long reads1 = m1.arrayReads;
                 final long comps1 = m1.comparisons;
+                final long peakAux1 = m1.peakAuxSpace;
 
                 int[] arr2 = panel2.getArrayCopy();
                 List<Operation> ops2 = new ArrayList<>();
@@ -1574,6 +1727,7 @@ class CompareFrame extends JFrame {
                 final long writes2 = m2.arrayWrites;
                 final long reads2 = m2.arrayReads;
                 final long comps2 = m2.comparisons;
+                final long peakAux2 = m2.peakAuxSpace;
 
                 SwingUtilities.invokeLater(() -> {
                     statsLabel1.setText("<html><i>Visualizing...</i><br><br><br><br></html>");
@@ -1594,15 +1748,15 @@ class CompareFrame extends JFrame {
 
                     player1 = new OperationPlayer(ops1, panel1, 5, new JLabel(), time1, null, () -> {
                         p1Done.set(true);
-                        statsLabel1.setText(String.format("<html><b>Algorithm:</b> %s<br><b>Time:</b> %.3f ms<br><b>Memory Diff:</b> %s<br><b>Time Complexity:</b> %s &nbsp;&nbsp; <b>Space Complexity:</b> %s<br><b>Swaps:</b> %d &nbsp;&nbsp; <b>Comparisons:</b> %d<br><b>Array Reads:</b> %d &nbsp;&nbsp; <b>Array Writes:</b> %d</html>",
-                                alg1.getDisplayName(), time1 / 1_000_000.0, (memUsed1 > 0 ? memUsed1 + " bytes" : "< 1 KB"), alg1.getTimeComplexity(), alg1.getSpaceComplexity(), swaps1, comps1, reads1, writes1));
+                        statsLabel1.setText(String.format("<html><b>Algorithm:</b> %s<br><b>Time:</b> %.3f ms<br><b>Memory Diff:</b> %s<br><b>Peak Aux:</b> %d Elements<br><b>Time Complexity:</b> %s &nbsp;&nbsp; <b>Space Complexity:</b> %s<br><b>Swaps:</b> %d &nbsp;&nbsp; <b>Comparisons:</b> %d<br><b>Array Reads:</b> %d &nbsp;&nbsp; <b>Array Writes:</b> %d</html>",
+                                alg1.getDisplayName(), time1 / 1_000_000.0, (memUsed1 > 0 ? memUsed1 + " bytes" : "< 1 KB"), peakAux1, alg1.getTimeComplexity(), alg1.getSpaceComplexity(), swaps1, comps1, reads1, writes1));
                         checkDone.run();
                     });
                     
                     player2 = new OperationPlayer(ops2, panel2, 5, new JLabel(), time2, null, () -> {
                         p2Done.set(true);
-                        statsLabel2.setText(String.format("<html><b>Algorithm:</b> %s<br><b>Time:</b> %.3f ms<br><b>Memory Diff:</b> %s<br><b>Time Complexity:</b> %s &nbsp;&nbsp; <b>Space Complexity:</b> %s<br><b>Swaps:</b> %d &nbsp;&nbsp; <b>Comparisons:</b> %d<br><b>Array Reads:</b> %d &nbsp;&nbsp; <b>Array Writes:</b> %d</html>",
-                                alg2.getDisplayName(), time2 / 1_000_000.0, (memUsed2 > 0 ? memUsed2 + " bytes" : "< 1 KB"), alg2.getTimeComplexity(), alg2.getSpaceComplexity(), swaps2, comps2, reads2, writes2));
+                        statsLabel2.setText(String.format("<html><b>Algorithm:</b> %s<br><b>Time:</b> %.3f ms<br><b>Memory Diff:</b> %s<br><b>Peak Aux:</b> %d Elements<br><b>Time Complexity:</b> %s &nbsp;&nbsp; <b>Space Complexity:</b> %s<br><b>Swaps:</b> %d &nbsp;&nbsp; <b>Comparisons:</b> %d<br><b>Array Reads:</b> %d &nbsp;&nbsp; <b>Array Writes:</b> %d</html>",
+                                alg2.getDisplayName(), time2 / 1_000_000.0, (memUsed2 > 0 ? memUsed2 + " bytes" : "< 1 KB"), peakAux2, alg2.getTimeComplexity(), alg2.getSpaceComplexity(), swaps2, comps2, reads2, writes2));
                         checkDone.run();
                     });
 
@@ -1675,6 +1829,24 @@ class TrackedArray {
 
     public void markFinal(int i) {
         if (ops != null) ops.add(Operation.markFinal(i));
+    }
+
+    public void allocateAux(int size) {
+        metrics.currentAuxSpace += size;
+        if (metrics.currentAuxSpace > metrics.peakAuxSpace) {
+            metrics.peakAuxSpace = metrics.currentAuxSpace;
+        }
+        if (ops != null) ops.add(Operation.auxAllocate(size));
+    }
+
+    public void writeAux(int i, int val) {
+        metrics.arrayWrites++;
+        if (ops != null) ops.add(Operation.auxWrite(i, val));
+    }
+
+    public void clearAux(int size) {
+        metrics.currentAuxSpace -= size;
+        if (ops != null) ops.add(Operation.auxClear());
     }
 }
 
