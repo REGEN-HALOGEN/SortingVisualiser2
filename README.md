@@ -42,6 +42,7 @@ Visualize 8 popular sorting algorithms with step-by-step animations:
 - **Tooltips** added across all UI elements to clarify function behavior.
 - **Custom Data Distributions** added (Nearly Sorted, Reversed, Few Unique, Gaussian).
 - **Live Auxiliary Space Indication** with visual array split screens and dynamic element counters.
+- **Auto Research**: Automated batch benchmarking system extracting research-grade Mean & Standard Deviation statistics across thousands of dataset trials.
 
 ### 🔗 Data Structure Visualizer
 Interactive visualization of 6 fundamental data structures:
@@ -236,6 +237,10 @@ For detailed project documentation, refer to the included `ADS_Project_Documenta
 ---
 
 ## 📝 Changelog
+
+### v1.4.1 (March 2026)
+**Sorting Visualizer Enhancements:**
+- 🔬 **Auto Research Benchmark**: Added a new parallelized "Auto Research" tool inside the Analysis Window. It autonomously executes scalable stress trials across all algorithms (Sizes 100 to 1,000; 30 repetitions each) calculating true statistical **Mean** and **Standard Deviation** variables safely. Results export identically to familiar CSV layouts.
 
 ### v1.4.0 (March 2026)
 **UI & Experience Modernization:**

@@ -39,7 +39,7 @@ public class SortingVisualiser {
             UIManager.setLookAndFeel(isDark ? "com.formdev.flatlaf.FlatDarkLaf" : "com.formdev.flatlaf.FlatLightLaf");
         } catch (Exception e) {
             try {
-                UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
+                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
             } catch (Exception ex) {
                 // ignore fallback errors
             }
@@ -1463,6 +1463,8 @@ class SortAnalysisDialog extends JDialog {
         setLocationRelativeTo(owner);
         setLayout(new BorderLayout());
 
+        JPanel topContainer = new JPanel(new BorderLayout());
+        
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         topPanel.add(new JLabel("Array Size:"));
         JSpinner sizeSpinner = new JSpinner(new SpinnerNumberModel(1000, 10, 1000000, 100));
@@ -1477,21 +1479,28 @@ class SortAnalysisDialog extends JDialog {
         
         JButton autoRunBtn = new JButton("▶ Run Auto Analysis");
         autoRunBtn.setToolTipText("Run all algorithms on the specified dataset and record the results");
+        JButton autoResearchBtn = new JButton("📈 Auto Research");
+        autoResearchBtn.setToolTipText("Run 30 trials for array sizes 100 to 1000 and calculate Mean/StdDev");
         JButton exportBtn = new JButton("💾 Export to CSV");
         exportBtn.setToolTipText("Save the analysis history below to a CSV file");
         JButton clearDataBtn = new JButton("✖ Clear Data");
         clearDataBtn.setToolTipText("Clear all previously recorded sort analysis data");
 
         topPanel.add(autoRunBtn);
+        topPanel.add(autoResearchBtn);
         topPanel.add(exportBtn);
         topPanel.add(clearDataBtn);
         
+        JPanel progressPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JProgressBar progressBar = new JProgressBar(0, 100);
         progressBar.setStringPainted(true);
         progressBar.setVisible(false);
         JLabel statusLabel = new JLabel("");
-        topPanel.add(progressBar);
-        topPanel.add(statusLabel);
+        progressPanel.add(progressBar);
+        progressPanel.add(statusLabel);
+
+        topContainer.add(topPanel, BorderLayout.NORTH);
+        topContainer.add(progressPanel, BorderLayout.SOUTH);
 
         String[] columns = {"Algorithm", "Array Size", "Time (ms)", "Actual Memory Diff", "Peak Aux Elements", "Time Complexity", "Space Complexity", "Swaps", "Array Writes", "Array Reads", "Comparisons"};
         javax.swing.table.DefaultTableModel model = new javax.swing.table.DefaultTableModel(columns, 0) {
@@ -1632,7 +1641,7 @@ class SortAnalysisDialog extends JDialog {
             }
         });
         
-        add(topPanel, BorderLayout.NORTH);
+        add(topContainer, BorderLayout.NORTH);
         add(new JScrollPane(table), BorderLayout.CENTER);
 
         clearDataBtn.addActionListener(e -> {
@@ -1645,6 +1654,7 @@ class SortAnalysisDialog extends JDialog {
             int size = (Integer) sizeSpinner.getValue();
             String distribution = (String) distributionCombo.getSelectedItem();
             autoRunBtn.setEnabled(false);
+            autoResearchBtn.setEnabled(false);
             
             progressBar.setValue(0);
             progressBar.setVisible(true);
@@ -1736,11 +1746,175 @@ class SortAnalysisDialog extends JDialog {
                             if (completed[0] == totalAlgorithms) {
                                 timer.stop();
                                 autoRunBtn.setEnabled(true);
+                                autoResearchBtn.setEnabled(true);
                                 progressBar.setVisible(false);
                                 statusLabel.setText("Analysis complete.");
                             }
                         });
                     });
+                }
+                executor.shutdown();
+            });
+            t.start();
+        });
+
+        autoResearchBtn.addActionListener(e -> {
+            String distribution = (String) distributionCombo.getSelectedItem();
+            autoRunBtn.setEnabled(false);
+            autoResearchBtn.setEnabled(false);
+
+            progressBar.setValue(0);
+            progressBar.setVisible(true);
+            statusLabel.setText("Preparing Research...");
+
+            long startTimeMillis = System.currentTimeMillis();
+            int numSizes = 10;
+            int trialsPerSize = 30;
+            int totalAlgorithms = VisualFrame.ALGORITHMS.length;
+            int totalTasks = totalAlgorithms * numSizes * trialsPerSize;
+            int[] completed = {0};
+
+            int cores = Runtime.getRuntime().availableProcessors();
+
+            javax.swing.Timer timer = new javax.swing.Timer(1000, evt -> {
+                long elapsedSeconds = (System.currentTimeMillis() - startTimeMillis) / 1000;
+                int c = completed[0];
+                if (c == 0) {
+                    statusLabel.setText(String.format("Researching on %d CPU cores... (Elapsed: %ds)", cores, elapsedSeconds));
+                } else {
+                    long elapsedMillis = System.currentTimeMillis() - startTimeMillis;
+                    long etaMillis = (long) ((elapsedMillis / (double) c) * (totalTasks - c));
+                    statusLabel.setText(String.format("Researching... %d/%d (Elapsed: %ds | ETA: %ds)", c, totalTasks, elapsedSeconds, etaMillis / 1000));
+                }
+            });
+            timer.start();
+
+            Thread t = new Thread(() -> {
+                java.util.concurrent.ExecutorService executor = java.util.concurrent.Executors.newFixedThreadPool(cores);
+                java.util.Random rnd = new java.util.Random();
+                
+                for (int sz = 100; sz <= 1000; sz += 100) {
+                    final int currentSize = sz;
+                    for (AlgorithmDefinition alg : VisualFrame.ALGORITHMS) {
+                        final String algNameWithDist = alg.getDisplayName() + " (" + distribution + ")";
+                        
+                        executor.submit(() -> {
+                            List<SortStats> trialStats = new ArrayList<>();
+                            for (int trial = 0; trial < trialsPerSize; trial++) {
+                                int[] arr = new int[currentSize];
+                                switch (distribution) {
+                                    case "Nearly Sorted":
+                                        for (int i = 0; i < currentSize; i++) arr[i] = i;
+                                        for (int i = 0; i < currentSize * 0.05; i++) {
+                                            int i1 = rnd.nextInt(currentSize);
+                                            int i2 = rnd.nextInt(currentSize);
+                                            int temp = arr[i1];
+                                            arr[i1] = arr[i2];
+                                            arr[i2] = temp;
+                                        }
+                                        break;
+                                    case "Reversed":
+                                        for (int i = 0; i < currentSize; i++) arr[i] = currentSize - i;
+                                        break;
+                                    case "Few Unique":
+                                        for (int i = 0; i < currentSize; i++) arr[i] = (rnd.nextInt(5) + 1) * (currentSize / 5);
+                                        break;
+                                    case "Gaussian":
+                                        for (int i = 0; i < currentSize; i++) {
+                                            int val = (int) (rnd.nextGaussian() * (currentSize / 4) + (currentSize / 2));
+                                            arr[i] = Math.max(1, Math.min(currentSize, val));
+                                        }
+                                        break;
+                                    case "Random":
+                                    default:
+                                        for(int i = 0; i < currentSize; i++) arr[i] = rnd.nextInt(400) + 5;
+                                        break;
+                                }
+                                
+                                int[] copy = arr.clone();
+                                SortMetrics metrics = new SortMetrics();
+                                
+                                // Omitted System.gc() to prevent JVM stop-the-world stall over 2,400 trials.
+                                long memBefore = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+                                long startNanos = System.nanoTime();
+                                alg.sort(copy, null, metrics);
+                                long algorithmTimeNanos = System.nanoTime() - startNanos;
+                                long memAfter = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+                                long memUsed = Math.max(0, memAfter - memBefore);
+                                
+                                SortStats stats = new SortStats(algNameWithDist, algorithmTimeNanos, memUsed, alg.getTimeComplexity(), alg.getSpaceComplexity(), metrics.swaps, metrics.arrayWrites, metrics.arrayReads, metrics.comparisons, metrics.peakAuxSpace, currentSize);
+                                trialStats.add(stats);
+                            }
+                            
+                            SwingUtilities.invokeLater(() -> {
+                                completed[0] += trialsPerSize;
+                                int percent = (int) ((completed[0] * 100.0) / totalTasks);
+                                progressBar.setValue(percent);
+                            });
+                            
+                            long sumTime = 0, sumMem = 0, sumComps = 0, sumSwaps = 0;
+                            for (SortStats s : trialStats) {
+                                sumTime += s.timeNanos;
+                                sumMem += s.memoryBytes;
+                                sumComps += s.comparisons;
+                                sumSwaps += s.swaps;
+                            }
+                            double meanTime = (double) sumTime / trialsPerSize;
+                            double meanMem = (double) sumMem / trialsPerSize;
+                            double meanComps = (double) sumComps / trialsPerSize;
+                            double meanSwaps = (double) sumSwaps / trialsPerSize;
+                            
+                            double varTime = 0, varMem = 0, varComps = 0, varSwaps = 0;
+                            for (SortStats s : trialStats) {
+                                varTime += Math.pow(s.timeNanos - meanTime, 2);
+                                varMem += Math.pow(s.memoryBytes - meanMem, 2);
+                                varComps += Math.pow(s.comparisons - meanComps, 2);
+                                varSwaps += Math.pow(s.swaps - meanSwaps, 2);
+                            }
+                            double stdDevTime = Math.sqrt(varTime / trialsPerSize);
+                            double stdDevMem = Math.sqrt(varMem / trialsPerSize);
+                            double stdDevComps = Math.sqrt(varComps / trialsPerSize);
+                            double stdDevSwaps = Math.sqrt(varSwaps / trialsPerSize);
+                            
+                            SortStats meanStats = new SortStats(algNameWithDist + " (Mean)", (long)meanTime, (long)meanMem, alg.getTimeComplexity(), alg.getSpaceComplexity(), (long)meanSwaps, 0, 0, (long)meanComps, 0, currentSize);
+                            SortStats stdDevStats = new SortStats(algNameWithDist + " (StdDev)", (long)stdDevTime, (long)stdDevMem, alg.getTimeComplexity(), alg.getSpaceComplexity(), (long)stdDevSwaps, 0, 0, (long)stdDevComps, 0, currentSize);
+                            
+                            SwingUtilities.invokeLater(() -> {
+                                for(SortStats s : trialStats) {
+                                    history.add(s);
+                                    model.addRow(new Object[]{
+                                        s.algorithmName, s.arraySize,
+                                        String.format(java.util.Locale.US, "%.3f", s.timeNanos / 1_000_000.0),
+                                        (s.memoryBytes > 0 ? s.memoryBytes + " bytes" : "< 1 KB"),
+                                        s.peakAuxElements,
+                                        s.timeComplexity, s.spaceComplexity, s.swaps, s.writes, s.reads, s.comparisons
+                                    });
+                                }
+                                history.add(meanStats);
+                                model.addRow(new Object[]{
+                                    meanStats.algorithmName, meanStats.arraySize,
+                                    String.format(java.util.Locale.US, "%.3f", meanStats.timeNanos / 1_000_000.0),
+                                    (meanStats.memoryBytes > 0 ? meanStats.memoryBytes + " bytes" : "0 bytes"),
+                                    "-", meanStats.timeComplexity, meanStats.spaceComplexity, meanStats.swaps, "-", "-", meanStats.comparisons
+                                });
+                                history.add(stdDevStats);
+                                model.addRow(new Object[]{
+                                    stdDevStats.algorithmName, stdDevStats.arraySize,
+                                    String.format(java.util.Locale.US, "%.3f", stdDevStats.timeNanos / 1_000_000.0),
+                                    (stdDevStats.memoryBytes > 0 ? stdDevStats.memoryBytes + " bytes" : "0 bytes"),
+                                    "-", stdDevStats.timeComplexity, stdDevStats.spaceComplexity, stdDevStats.swaps, "-", "-", stdDevStats.comparisons
+                                });
+                                
+                                if (completed[0] == totalTasks) {
+                                    timer.stop();
+                                    autoRunBtn.setEnabled(true);
+                                    autoResearchBtn.setEnabled(true);
+                                    progressBar.setVisible(false);
+                                    statusLabel.setText("Research complete.");
+                                }
+                            });
+                        });
+                    }
                 }
                 executor.shutdown();
             });
