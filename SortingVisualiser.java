@@ -111,6 +111,8 @@ class VisualFrame extends JFrame {
     private final JButton analysisBtn = new JButton("📊 Sort Analysis");
     private final JButton compareBtn = new JButton("🏁 Compare");
     private final JLabel statusLabel = new JLabel("Status: Ready");
+    private final JButton themeToggle = new JButton("☀ Light");
+    private boolean isDarkMode = true;
     private final JTextField sizeValueField = new JTextField("80");
     {
         sizeValueField.setPreferredSize(new Dimension(46, 24));
@@ -151,6 +153,7 @@ class VisualFrame extends JFrame {
         numberToggle.setToolTipText("Toggle display of numeric values on the bars.");
         auxToggle.setToolTipText(
                 "Toggle display of auxiliary space arrays during out-of-place sorting (e.g., Merge Sort).");
+        themeToggle.setToolTipText("Switch between dark and light mode.");
 
         speedSlider.setInverted(true);
 
@@ -248,6 +251,7 @@ class VisualFrame extends JFrame {
 
         numberToggle.addActionListener(e -> visualPanel.setShowNumbers(numberToggle.isSelected()));
         auxToggle.addActionListener(e -> visualPanel.setShowAux(auxToggle.isSelected()));
+        themeToggle.addActionListener(e -> toggleTheme());
 
         pack();
     }
@@ -376,6 +380,8 @@ class VisualFrame extends JFrame {
         bottom.add(auxToggle);
         bottom.add(analysisBtn);
         bottom.add(compareBtn);
+        bottom.add(Box.createHorizontalStrut(10));
+        bottom.add(themeToggle);
 
         panel.add(top, BorderLayout.NORTH);
         panel.add(bottom, BorderLayout.SOUTH);
@@ -511,6 +517,25 @@ class VisualFrame extends JFrame {
         }
     }
 
+    private void toggleTheme() {
+        isDarkMode = !isDarkMode;
+        try {
+            UIManager.setLookAndFeel(isDarkMode
+                    ? "com.formdev.flatlaf.FlatDarkLaf"
+                    : "com.formdev.flatlaf.FlatLightLaf");
+        } catch (Exception ex) {
+            try {
+                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            } catch (Exception ignored) { }
+        }
+        SwingUtilities.updateComponentTreeUI(this);
+        themeToggle.setText(isDarkMode ? "☀ Light" : "🌙 Dark");
+        visualPanel.setDarkMode(isDarkMode);
+        if (codeViewer != null && codeViewer.isVisible()) {
+            SwingUtilities.updateComponentTreeUI(codeViewer);
+        }
+    }
+
     private void startSorting() {
         if (player != null && player.isPlaying())
             return;
@@ -596,10 +621,17 @@ class VisualPanel extends JPanel {
     private int peakAuxElements = 0;
     private boolean showNumbers = true;
     private boolean showAux = true;
+    private boolean darkMode = true;
 
     public VisualPanel() {
         setPreferredSize(new Dimension(1000, 520));
         setBackground(Color.BLACK);
+    }
+
+    public void setDarkMode(boolean dark) {
+        this.darkMode = dark;
+        setBackground(dark ? Color.BLACK : new Color(245, 245, 250));
+        repaint();
     }
 
     public void setShowNumbers(boolean show) {
@@ -764,10 +796,10 @@ class VisualPanel extends JPanel {
                     int textX = x + (int) (barWidth / 2) - (strWidth / 2);
                     int textY = y - 2;
 
-                    g2.setColor(new Color(0, 0, 0, 180));
+                    g2.setColor(darkMode ? new Color(0, 0, 0, 180) : new Color(255, 255, 255, 200));
                     g2.fillRect(textX - 2, textY - strHeight + fm.getAscent(), strWidth + 4, strHeight);
 
-                    g2.setColor(Color.WHITE);
+                    g2.setColor(darkMode ? Color.WHITE : new Color(30, 30, 30));
                     g2.drawString(valueStr, textX, textY);
                 }
             }
@@ -775,10 +807,10 @@ class VisualPanel extends JPanel {
 
         // Draw aux array if present
         if (visualAuxSpace != null && showAux) {
-            g2.setColor(Color.DARK_GRAY);
+            g2.setColor(darkMode ? Color.DARK_GRAY : Color.LIGHT_GRAY);
             g2.drawLine(0, mainH, w, mainH);
 
-            g2.setColor(Color.LIGHT_GRAY);
+            g2.setColor(darkMode ? Color.LIGHT_GRAY : Color.DARK_GRAY);
             g2.setFont(new Font("Arial", Font.PLAIN, 12));
             g2.drawString("Current Aux Space Elements: " + visualAuxSpace.length + " | Peak: " + peakAuxElements, 10,
                     mainH + 15);

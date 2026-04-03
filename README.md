@@ -89,6 +89,7 @@ java -jar target/benchmarks.jar
 
 ## ✨ Visualizer Features
 
+- 🌗 **Dark / Light Mode Toggle** — switch between FlatLaf dark and light themes on the fly; all UI chrome and the visualization panel adapt instantly
 - Adjustable array size (1–300 elements) with live size counter display
 - Adjustable animation speed
 - Random array generation and custom array input
@@ -108,6 +109,7 @@ java -jar target/benchmarks.jar
 ```
 SortingVisualizerRetcon/
 ├── SortingVisualiser.java         # Single-file sorting visualizer with embedded benchmarking
+├── SortingVisualiser.jar           # Click-and-run fat JAR (FlatLaf bundled)
 ├── jmh-benchmark/                 # Standalone JMH benchmark module (Maven)
 │   ├── pom.xml
 │   ├── mvnw / mvnw.cmd
@@ -207,6 +209,10 @@ Contributions are welcome! Feel free to:
 ---
 
 ## 📋 Changelog (Research Branch)
+
+### Research v1.2.0 (April 2026)
+- 🌗 **Dark / Light Mode Toggle**: Added in-app theme switch button (`☀ Light` / `🌙 Dark`) that toggles between FlatLaf dark and light themes on the fly. All UI chrome, the visualization panel background, number labels, and auxiliary space indicators adapt instantly.
+- 📦 **Click-and-Run JAR**: Pre-built fat JAR (`SortingVisualiser.jar`) with FlatLaf bundled — double-click to launch, no classpath setup needed.
 
 ### Research v1.0.0 (April 2026)
 **Forked from master v1.4.1 — Research-focused refactoring:**

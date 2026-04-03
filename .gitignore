@@ -1,6 +1,10 @@
 # Compiled class files
 *.class
 
+# Built JARs (distributed via GitHub Releases)
+SortingVisualiser.jar
+flatlaf.jar
+
 # JMH benchmark build artifacts
 jmh-benchmark/target/
 jmh-benchmark/.mvn/
