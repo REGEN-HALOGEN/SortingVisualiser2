@@ -1,0 +1,19 @@
+# Compiled class files
+*.class
+
+# JMH benchmark build artifacts
+jmh-benchmark/target/
+jmh-benchmark/.mvn/
+jmh-benchmark/dependency-reduced-pom.xml
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# OS files
+.DS_Store
+Thumbs.db
